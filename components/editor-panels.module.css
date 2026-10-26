@@ -1,0 +1,986 @@
+.stylePanel {
+  min-width: 0;
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+}
+
+.panelHeader {
+  padding: 6px 4px 15px;
+}
+
+.panelHeader h2,
+.transcriptHeader h2 {
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+
+.preview {
+  display: flex;
+  min-height: 70px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 14px 8px;
+  background: linear-gradient(115deg, #fff0f3, #fff9e9 62%, #f3f7f6);
+}
+
+.previewText {
+  display: inline;
+  padding: 3px 6px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.45;
+}
+
+.modeTabs {
+  margin: 13px 0 23px;
+}
+
+.modeTabs [role="group"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: 35px;
+  padding: 3px;
+  border-radius: 9px;
+  background: #f3f2f5;
+}
+
+.modeTabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 1px);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    color 150ms,
+    background-color 150ms,
+    box-shadow 150ms;
+}
+
+.modeTabs button:hover {
+  color: var(--foreground);
+}
+
+.modeTabs button[aria-pressed="true"] {
+  color: var(--foreground);
+  background: var(--background);
+  box-shadow: 0 1px 3px #11182710;
+}
+
+.modeTabs button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.controls {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 23px;
+}
+
+.personEffects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #e8e2f2;
+  border-radius: 12px;
+  background: linear-gradient(125deg, #faf7ff, #fffef9);
+}
+
+.personEffects h3,
+.depthToggle,
+.depthToggle label,
+.personEffectProgress p {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.personEffects p {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #666578;
+}
+
+.personEffects fieldset {
+  min-width: 0;
+}
+
+.personEffects legend {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.placementOptions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.placementOptions button {
+  border: 1px solid #e5e3eb;
+  border-radius: 7px;
+  padding: 8px 3px;
+  background: white;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.placementOptions button[aria-pressed="true"] {
+  border-color: #dfc900;
+  background: #fff9d9;
+}
+
+.placementOptions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.placementOptions button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.depthToggle {
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #e8e2f2;
+}
+
+.depthToggle label {
+  cursor: pointer;
+}
+
+.personEffectProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stylePanel label,
+.stylePanel h3 {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.stylePanel [data-slot="select-trigger"] {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px #11182703;
+}
+
+.stylePanel [data-slot="slider-track"],
+.wordPopover [data-slot="slider-track"] {
+  height: 5px;
+  background: #f0eef2;
+}
+
+.stylePanel [data-slot="slider-range"],
+.wordPopover [data-slot="slider-range"] {
+  background: #f0d400;
+}
+
+.stylePanel [data-slot="slider-thumb"],
+.wordPopover [data-slot="slider-thumb"] {
+  width: 17px;
+  height: 17px;
+  border-color: #e4c900;
+  background: #fffefa;
+  box-shadow: 0 2px 4px #11182710;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 8px;
+}
+
+.preset {
+  min-width: 0;
+  border-radius: 8px;
+  padding: 0 0 2px;
+  cursor: pointer;
+  outline-offset: 3px;
+}
+
+.presetFace {
+  position: relative;
+  display: flex;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  border-radius: 7px;
+  background-clip: padding-box;
+  font-size: 23px;
+  line-height: 1;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.preset:hover .presetFace {
+  box-shadow: 0 2px 8px #11182720;
+}
+
+.preset[aria-pressed="true"] .presetFace {
+  border-color: #e8cf00;
+  box-shadow: 0 0 0 2px #fff4a6;
+}
+
+.presetLabel {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.preset[aria-pressed="true"] .presetLabel {
+  color: var(--foreground);
+}
+
+.weightOptions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.weightOptions button {
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 2px;
+  color: var(--muted-foreground);
+  background: #fffefe;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.weightOptions button[aria-pressed="true"] {
+  border-color: #e6cb00;
+  color: var(--foreground);
+  background: #fffbed;
+}
+
+.colorField {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px 4px 11px;
+  background: #fffefe;
+  color: var(--muted-foreground);
+}
+
+.colorField input[type="color"] {
+  width: 25px;
+  height: 25px;
+  overflow: hidden;
+  border: 1px solid #d8d6df;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+}
+
+.colorField input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colorField input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+.advanced {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+}
+
+.advanced > h3 {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.advancedContent {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-top: 22px;
+}
+
+.branding {
+  margin-top: 22px;
+  border: 1px solid #efe8c3;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fffcf0;
+}
+
+.transcriptPanel {
+  min-width: 0;
+  min-height: 0;
+  font-family: var(--font-sans), sans-serif;
+}
+
+.transcriptHeader {
+  padding: 6px 5px 13px;
+}
+
+.transcriptHeader p {
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.transcriptToolbar {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 8px;
+}
+
+.transcriptScroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.transcriptScroll > [data-slot="scroll-area-viewport"] {
+  overscroll-behavior: contain;
+}
+
+.transcriptChunk {
+  margin: 0 0 8px;
+  border: 1px solid #eae9ef;
+  border-radius: 10px;
+  padding: 11px;
+  background: #fcfcfd;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.transcriptChunk:hover {
+  border-color: #d5d2dd;
+  background: #f8f7fa;
+}
+
+.transcriptChunk[data-active="true"] {
+  border-color: #e9d33e;
+  background: #fff8d6;
+}
+
+.transcriptChunk[data-state="hidden"] {
+  border-style: dashed;
+  background: #fffdf2;
+}
+
+.transcriptChunk[data-state="skipped"] {
+  border-color: #f0d5d9;
+  background: #fff6f7;
+}
+
+.chunkTime {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chunkActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  margin: -3px -4px 0 4px;
+}
+
+.chunkActions button {
+  width: 27px;
+  height: 27px;
+  border-radius: 6px;
+  color: #747183;
+}
+
+.chunkText {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.transcriptExports {
+  border-top: 1px solid var(--border);
+  padding: 14px 3px 2px;
+}
+
+.wordPopover {
+  border: 1px solid #e6e3eb;
+  border-radius: 14px;
+  background: #fffefe;
+  box-shadow:
+    0 14px 46px #24203420,
+    0 2px 5px #24203408;
+  font-family: var(--font-sans), sans-serif;
+}
+
+.wordPopover h4 {
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/*
+ * Fluid shell. Width tracks the viewport so the five cards get room on wide
+ * screens, and is clamped so it never looks stretched on ultrawides. Height is
+ * bounded by the viewport and scrolls internally, which matters on short
+ * laptop screens where the five cards plus the language picker would otherwise
+ * be clipped.
+ */
+.languageModal {
+  width: min(92vw, 980px);
+  max-width: 980px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 0;
+  border: 1px solid #fffefe;
+  border-radius: 22px;
+  padding: 32px;
+  background:
+    radial-gradient(ellipse at 0 0, #edf4ff, transparent 36%),
+    radial-gradient(ellipse at 100% 15%, #fffbea, transparent 29%),
+    radial-gradient(ellipse at 100% 70%, #f3eeff, transparent 45%), #fffefe;
+  box-shadow: 0 30px 110px #25223635;
+  font-family: var(--font-sans), sans-serif;
+}
+
+/* Height-driven tightening: on short viewports we reclaim vertical space
+ * before anything is allowed to clip. */
+@media (max-height: 700px) {
+  .languageModal {
+    padding: 22px 28px;
+  }
+
+  .languageForm {
+    gap: 16px;
+    padding-top: 18px;
+  }
+}
+
+.languageIcon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 14px;
+  margin-bottom: 18px;
+  color: #147beb;
+  background: #e0edff;
+}
+
+.languageTitle {
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
+  font-size: 27px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.055em;
+}
+
+.languageDescription {
+  max-width: 485px;
+  margin-top: 3px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.languageForm {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+  padding-top: 26px;
+}
+
+.languageForm [data-slot="select-trigger"] {
+  height: 45px;
+  border: 1px solid #d9d6e2;
+  border-radius: 8px;
+  padding-inline: 15px;
+  background: #fffefedb;
+  font-size: 15px;
+  box-shadow: 0 1px 2px #14112105;
+}
+
+.modelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.modelChecking {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -2px 0 12px;
+  color: #716b83;
+  font-size: 12px;
+}
+
+.localPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 20px;
+  padding: 8px 13px;
+  background: #f4f3f6;
+  color: #686379;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.localPill svg {
+  width: 15px;
+  height: 15px;
+  color: #d1a900;
+  fill: #f7d627;
+}
+
+/*
+ * Explicit column counts rather than `auto-fit`/`minmax`: auto-fit sized each
+ * card from whatever width was left over, so the five cards ended up at
+ * visibly different sizes. Fixed track counts keep every card the same width
+ * and let the breakpoints own the responsive behaviour.
+ *
+ * 2 -> 3 -> 5 matches the five models exactly, so no row is ever left ragged.
+ */
+.modelOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (min-width: 560px) {
+  .modelOptions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 860px) {
+  .modelOptions {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+/** Hardware-gated option: visible, non-interactive, never selected. */
+.modelCardDisabled {
+  border-color: #e5e2eb;
+  background: #f6f5f8;
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.modelCardDisabled:hover {
+  border-color: #e5e2eb;
+}
+
+.modelCardDisabled > span:first-child {
+  color: #8b8698;
+  background: #eceaf0;
+}
+
+.modelCardDisabled strong,
+.modelCardDisabled small {
+  color: #716b83;
+}
+
+.modelBlocked {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 20px;
+  padding: 3px 8px;
+  color: #6b6780;
+  background: #eceaf0;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * The blocked badge is absolutely positioned over the card's bottom-right
+ * corner, so the reason text reserves that space. Without this the longer
+ * reasons ("Needs 2048 MB GPU buffer (have 1024 MB)") run underneath it.
+ */
+.modelCardDisabled .modelBody {
+  padding-bottom: 18px;
+}
+
+.modelCard {
+  position: relative;
+  display: flex;
+  min-height: 122px;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid #e5e2eb;
+  border-radius: 12px;
+  padding: 16px 14px;
+  background: #fffefe96;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 150ms,
+    background-color 150ms;
+}
+
+.modelCard:hover {
+  border-color: #b5b0c2;
+}
+
+/* Focus ring, keyboard-only, and offset outside the card so the border is not
+ * clipped by neighbouring grid items. */
+.modelCard:focus-visible {
+  outline: 2px solid #129b8b;
+  outline-offset: 2px;
+}
+
+.modelCard[aria-pressed="true"] {
+  border-color: #129b8b;
+  background: #eaf8f4a6;
+}
+
+/* Icon plate. `flex-shrink: 0` keeps it from collapsing when the description
+ * text wraps to several lines. */
+.modelCard > span:first-child {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+  color: #9564f5;
+  background: #f1edff;
+}
+
+/* Text column takes the remaining track width and must be allowed to shrink,
+ * otherwise long descriptions push the card past its grid cell. */
+.modelBody {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.modelCard[data-model="base"] > span:first-child {
+  color: #159b8c;
+  background: #dff4ee;
+}
+
+.modelCard[data-model="small"] > span:first-child {
+  color: #ee527b;
+  background: #fff0f3;
+}
+
+.modelCard[data-model="turbo"] > span:first-child {
+  color: #e07b39;
+  background: #fff1e6;
+}
+
+.modelCard[data-model="medium"] > span:first-child {
+  color: #6a5acd;
+  background: #eeecfb;
+}
+
+.modelCard strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* Download-size tag, split out of the heading so it can stay visually
+ * subordinate to the model name. */
+.modelSize {
+  display: block;
+  margin-top: 2px;
+  color: #8b8698;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.modelCard small {
+  display: block;
+  margin-top: 6px;
+  color: #716b83;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.modelCheck {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  border: 2px solid #fffefe;
+  border-radius: 50%;
+  padding: 2px;
+  color: white;
+  background: #129b8b;
+}
+
+.languageNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  border-radius: 11px;
+  padding: 18px 16px;
+  background: #fff9e6c9;
+}
+
+.languageNote > svg {
+  width: 37px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  padding: 8px;
+  color: #d3a200;
+  background: #fff0b8;
+}
+
+.languageNote strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.languageNote p {
+  color: #736b82;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.languageActions {
+  display: flex;
+  gap: 15px;
+}
+
+.languageActions button {
+  height: 44px;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.languagePrivacy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: -4px;
+  color: #81778c;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.processingModal {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
+  border: 1px solid #ece9f2;
+  border-radius: 19px;
+  padding: 30px;
+  background:
+    radial-gradient(ellipse at 100% 0, #efebff, transparent 45%), #fffefe;
+  box-shadow: 0 25px 100px #28213c28;
+}
+
+.processingHeading {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+
+.processingHeading > svg {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  padding: 15px;
+  color: #8551e9;
+  background: #f0eaff;
+}
+
+.processingHeading h3 {
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: -0.04em;
+}
+
+.processingHeading p {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  margin: 28px 0;
+}
+
+.progressRow [data-slot="progress"] {
+  height: 11px;
+  flex: 1;
+  background: #f0edf5;
+}
+
+.progressRow [data-slot="progress-indicator"] {
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9365ef, #7aaafa);
+}
+
+.processingStages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.processingStage {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e9e5ef;
+  border-radius: 10px;
+  padding: 13px 10px;
+  color: #7c758b;
+  font-size: 11px;
+}
+
+.processingStage[data-active="true"] {
+  border-color: #d8c8ff;
+  color: #592aab;
+  background: #f4efff;
+}
+
+.processingStage svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .languageModal,
+  .processingModal {
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .languageTitle {
+    font-size: 23px;
+  }
+
+  .languageDescription {
+    font-size: 14px;
+  }
+
+  .modelOptions {
+    gap: 10px;
+  }
+
+  /* Two stacked columns of cards; the row layout has no room for a readable
+   * description at this width, so the icon moves above the text. */
+  .modelCard {
+    min-height: 124px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 13px 12px;
+  }
+
+  .modelCard > span:first-child {
+    width: 36px;
+    height: 36px;
+  }
+
+  .modelCard strong {
+    font-size: 14px;
+  }
+
+  .modelSize {
+    font-size: 11px;
+  }
+
+  .modelCard small {
+    font-size: 11px;
+  }
+
+  .localPill {
+    max-width: 154px;
+    font-size: 10px;
+  }
+
+  .languageActions {
+    gap: 9px;
+  }
+
+  .languageActions button {
+    font-size: 12px;
+  }
+
+  .processingHeading {
+    align-items: flex-start;
+  }
+
+  .processingHeading h3 {
+    font-size: 20px;
+  }
+
+  .processingStages {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stylePanel *,
+  .wordPopover *,
+  .languageModal *,
+  .processingModal * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

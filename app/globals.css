@@ -1,0 +1,358 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-roboto-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --font-heading: var(--font-plus-jakarta-sans);
+  --font-body: var(--font-sans);
+  --font-jost: var(--font-jost);
+  --font-rubik: var(--font-rubik);
+  --font-roboto-mono: var(--font-roboto-mono);
+}
+
+/*
+ * Landing page design tokens (source: DESIGN.md).
+ *
+ * This is Tailwind v4 with CSS-first configuration (there is no
+ * tailwind.config.js in this project), so tokens are declared here and
+ * consumed either as Tailwind utilities or via `var(--color-...)` from
+ * landing.module.css.
+ *
+ * Roles follow DESIGN.md: pure white / light slate canvas, electric royal
+ * blue primaries (#2563EB / #1D4ED8) with cyan-sky accents (#38BDF8),
+ * dark slate terminal surfaces (#0F172A / #020617), success green
+ * (#10B981 / #ECFDF5), hairline borders (#E2E8F0). Buttons: primary solid
+ * #2563EB -> hover #1D4ED8 with 0.98 active scale; secondary white with
+ * #E2E8F0 border -> hover #F8FAFC. Radii: buttons 0.5rem, feature cards
+ * 1rem, large panels 1.5rem, pills 9999px. Headlines Plus Jakarta Sans,
+ * body Inter, labels JetBrains Mono (mapped to Roboto Mono, the mono
+ * already loaded by app/layout.tsx).
+ */
+@theme {
+  /* Surfaces */
+  --color-landing-canvas: #f8fafc;
+  --color-landing-surface: #ffffff;
+  --color-landing-surface-low: #f8fafc;
+  --color-landing-line: #e2e8f0;
+  --color-landing-hairline: #e2e8f0;
+
+  /* Text */
+  --color-landing-ink: #0d111b;
+  --color-landing-muted: #66708a;
+  --color-landing-faint: #8b8698;
+
+  /* Brand accents (aligned to the app, not to code.html's royal blue) */
+  --color-landing-teal: #129b8b;
+  --color-landing-teal-soft: #eaf8f4;
+  --color-landing-purple: #7c5cff;
+  --color-landing-purple-soft: #f1edff;
+  --color-landing-pink: #ee527b;
+  --color-landing-pink-soft: #fff0f3;
+  --color-landing-yellow: #d1a900;
+  --color-landing-yellow-soft: #fff9e6;
+  --color-landing-green: #10b981;
+  --color-landing-green-soft: #ecfdf5;
+
+  /* Interactive blue, kept restrained for links and focus states */
+  --color-landing-blue: #2563eb;
+  --color-landing-blue-dark: #1d4ed8;
+  --color-landing-blue-soft: #eaf1fe;
+  --color-landing-cyan: #38bdf8;
+
+  /* Dark code / terminal surfaces */
+  --color-landing-code: #0f172a;
+  --color-landing-code-deep: #020617;
+}
+
+/*
+ * Reference palette tokens, transcribed 1:1 from the `tailwind.config`
+ * inline script in the design reference (`code.html`), which is the single
+ * source of truth for the landing page. Exposed here so the exact utility
+ * names from the reference (`bg-primary-container`, `text-cyan-sky`,
+ * `bg-slate-bg-code`, `text-electric-royal-light`, ...) resolve in this
+ * Tailwind v4 CSS-first setup. Three names are deliberately NOT mirrored
+ * because this file already defines them for the app theme above and
+ * redefining them would restyle the editor: `background` (#faf8ff would
+ * override the app canvas), `primary` and `secondary`.
+ */
+@theme {
+  --color-tertiary-fixed: #ffdbcd;
+  --color-surface: #faf8ff;
+  --color-canvas-neutral: #f8fafc;
+  --color-surface-container-highest: #e1e2ed;
+  --color-cyan-sky: #38bdf8;
+  --color-electric-royal-light: #3b82f6;
+  --color-on-background: #191b23;
+  --color-status-success: #10b981;
+  --color-on-secondary-container: #006172;
+  --color-on-tertiary-container: #ffede6;
+  --color-outline: #737686;
+  --color-primary-fixed: #dbe1ff;
+  --color-inverse-on-surface: #f0f0fb;
+  --color-surface-dim: #d9d9e5;
+  --color-tertiary-fixed-dim: #ffb596;
+  --color-on-primary-fixed-variant: #003ea8;
+  --color-primary-container: #2563eb;
+  --color-surface-container-low: #f3f3fe;
+  --color-electric-royal-dark: #1d4ed8;
+  --color-on-secondary: #ffffff;
+  --color-on-error: #ffffff;
+  --color-tertiary: #943700;
+  --color-slate-bg-code: #0f172a;
+  --color-tertiary-container: #bc4800;
+  --color-surface-variant: #e1e2ed;
+  --color-surface-tint: #0053db;
+  --color-on-secondary-fixed-variant: #004e5c;
+  --color-secondary-container: #57dffe;
+  --color-on-tertiary-fixed-variant: #7d2d00;
+  --color-on-secondary-fixed: #001f26;
+  --color-border-hairline: #e2e8f0;
+  --color-on-tertiary: #ffffff;
+  --color-on-surface: #191b23;
+  --color-slate-surface-dark: #020617;
+  --color-on-primary: #ffffff;
+  --color-status-success-light: #ecfdf5;
+  --color-on-primary-container: #eeefff;
+  --color-status-warning-light: #fffbeb;
+  --color-on-error-container: #93000a;
+  --color-on-surface-variant: #434655;
+  --color-status-warning: #f59e0b;
+  --color-surface-container-lowest: #ffffff;
+  --color-inverse-primary: #b4c5ff;
+  --color-secondary-fixed: #acedff;
+  --color-on-tertiary-fixed: #360f00;
+  --color-outline-variant: #c3c6d7;
+  --color-inverse-surface: #2e3039;
+  --color-surface-bright: #faf8ff;
+  --color-surface-container: #ededf9;
+  --color-on-primary-fixed: #00174b;
+  --color-primary-fixed-dim: #b4c5ff;
+  --color-surface-container-high: #e7e7f3;
+  --color-error-container: #ffdad6;
+  --color-secondary-fixed-dim: #4cd7f6;
+  --color-error: #ba1a1a;
+}
+
+/*
+ * Reference type tokens (DESIGN.md roles). Headlines resolve to Plus
+ * Jakarta Sans (loaded in app/layout.tsx), body to Inter, labels to the
+ * loaded Roboto Mono stack standing in for JetBrains Mono. These give the
+ * reference `font-*` / `text-*` class names exact DESIGN.md values.
+ */
+@theme {
+  --font-display-xl: "Plus Jakarta Sans", sans-serif;
+  --text-display-xl: 56px;
+  --text-display-xl--line-height: 64px;
+  --font-headline-lg: "Plus Jakarta Sans", sans-serif;
+  --text-headline-lg: 40px;
+  --text-headline-lg--line-height: 48px;
+  --font-headline-md: "Plus Jakarta Sans", sans-serif;
+  --text-headline-md: 28px;
+  --text-headline-md--line-height: 36px;
+  --font-headline-sm: "Plus Jakarta Sans", sans-serif;
+  --text-headline-sm: 20px;
+  --text-headline-sm--line-height: 28px;
+  --font-body-lg: Inter, sans-serif;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --font-body-md: Inter, sans-serif;
+  --text-body-md: 15px;
+  --text-body-md--line-height: 24px;
+  --font-body-sm: Inter, sans-serif;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 20px;
+  --font-label-code: "JetBrains Mono", var(--font-roboto-mono), monospace;
+  --text-label-code: 13px;
+  --text-label-code--line-height: 18px;
+  --font-label-timestamp: "JetBrains Mono", var(--font-roboto-mono), monospace;
+  --text-label-timestamp: 12px;
+  --text-label-timestamp--line-height: 16px;
+  --font-caption: Inter, sans-serif;
+  --text-caption: 11px;
+  --text-caption--line-height: 14px;
+}
+
+:root {
+  --radius: 0.75rem;
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0.008 326);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0.008 326);
+  --primary: #11141f;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.96 0.003 325.6);
+  --muted-foreground: #676c83;
+  --accent: #fff7bf;
+  --accent-foreground: oklch(0.212 0.019 322.12);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0.005 325.62);
+  --input: oklch(0.922 0.005 325.62);
+  --ring: oklch(0.711 0.019 323.02);
+  --chart-1: oklch(0.855 0.138 181.071);
+  --chart-2: oklch(0.704 0.14 182.503);
+  --chart-3: oklch(0.6 0.118 184.704);
+  --chart-4: oklch(0.511 0.096 186.391);
+  --chart-5: oklch(0.437 0.078 188.216);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0.008 326);
+  --sidebar-primary: oklch(0.6 0.118 184.704);
+  --sidebar-primary-foreground: oklch(0.984 0.014 180.72);
+  --sidebar-accent: oklch(0.96 0.003 325.6);
+  --sidebar-accent-foreground: oklch(0.212 0.019 322.12);
+  --sidebar-border: oklch(0.922 0.005 325.62);
+  --sidebar-ring: oklch(0.711 0.019 323.02);
+  --background: #fdfdfb;
+  --foreground: #10121b;
+  --highlight: #ffe500;
+}
+
+.dark {
+  --background: oklch(0.145 0.008 326);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.212 0.019 322.12);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.212 0.019 322.12);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.437 0.078 188.216);
+  --primary-foreground: oklch(0.984 0.014 180.72);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.263 0.024 320.12);
+  --muted-foreground: oklch(0.711 0.019 323.02);
+  --accent: oklch(0.263 0.024 320.12);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.542 0.034 322.5);
+  --chart-1: oklch(0.855 0.138 181.071);
+  --chart-2: oklch(0.704 0.14 182.503);
+  --chart-3: oklch(0.6 0.118 184.704);
+  --chart-4: oklch(0.511 0.096 186.391);
+  --chart-5: oklch(0.437 0.078 188.216);
+  --sidebar: oklch(0.212 0.019 322.12);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.704 0.14 182.503);
+  --sidebar-primary-foreground: oklch(0.277 0.046 192.524);
+  --sidebar-accent: oklch(0.263 0.024 320.12);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.542 0.034 322.5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+  }
+  :focus-visible {
+    outline: 2px solid #4779cb;
+    outline-offset: 3px;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+  h2 {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+  h3 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+  }
+  body,
+  p {
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+  code,
+  pre {
+    font-family: var(--font-mono);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

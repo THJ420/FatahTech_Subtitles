@@ -1,0 +1,61 @@
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.progressRow {
+  margin-bottom: 24px;
+}
+
+.progressValue {
+  min-width: 4ch;
+  color: #242438;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.track[data-indeterminate="true"] > div {
+  width: 32%;
+  animation: indeterminate 1.8s ease-in-out infinite;
+  transition: none;
+}
+
+.downloadDetail {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+  margin: -12px 0 24px;
+  color: #65687d;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes indeterminate {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(420%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+
+  .track > div {
+    transition: none;
+  }
+
+  .track[data-indeterminate="true"] > div {
+    animation: none;
+    transform: translateX(105%);
+  }
+}
