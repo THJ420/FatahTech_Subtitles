@@ -1011,13 +1011,22 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
                 {subtitleStyle.showWatermark !== false &&
                   !compositingActive && (
                     <div
-                      className="absolute bottom-[1.8%] right-[2.5%] pointer-events-none z-20"
+                      className="pointer-events-none absolute z-20 flex items-center"
                       style={{
+                        right: watermark.marginX,
+                        bottom: watermark.marginY,
+                        padding: `${watermark.paddingY}px ${watermark.paddingX}px`,
+                        borderRadius: watermark.radius,
+                        background: "rgba(8, 15, 35, 0.62)",
+                        border: "1px solid rgba(147, 180, 255, 0.4)",
+                        boxShadow: `0 ${watermark.shadowOffsetY}px ${watermark.shadowBlur}px rgba(0, 0, 0, 0.45)`,
+                        color: "rgba(255, 255, 255, 0.95)",
                         fontSize: watermark.fontSize,
                         fontWeight: 700,
                         fontFamily: WATERMARK_FONT_FAMILY,
-                        color: "rgba(255, 255, 255, 0.42)",
-                        textShadow: `0 ${watermark.shadowOffsetY}px ${watermark.shadowBlur}px rgba(0, 0, 0, 0.5)`,
+                        letterSpacing: "0.02em",
+                        lineHeight: 1,
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {WATERMARK_TEXT}

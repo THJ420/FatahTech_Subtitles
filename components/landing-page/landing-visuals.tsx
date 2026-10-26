@@ -1,51 +1,11 @@
 import type { CSSProperties } from "react";
 import Image from "next/image";
-import {
-  Download,
-  LockKeyhole,
-  Maximize2,
-  Play,
-  Volume2,
-} from "lucide-react";
+import { Download, LockKeyhole, Maximize2, Play, Volume2 } from "lucide-react";
+import { BrandLockup } from "@/components/brand-lockup";
 import styles from "./landing.module.css";
 
 export function LandingBrand({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className="flex items-center gap-3 group focus:outline-none">
-      {/* Custom Brand Emblem */}
-      <span
-        className={`relative flex items-center justify-center shrink-0 ${compact ? "w-7 h-7" : "w-9 h-9"}`}
-      >
-        <img
-          src="/brand-logo.webp"
-          alt="FatahTech Logo"
-          className="w-full h-full object-contain"
-        />
-      </span>
-
-      {/* Text Stack */}
-      <span className="flex flex-col justify-center leading-none">
-        {/* Top Row: Brand Name + Subtitles Pill */}
-        <span className="flex items-center gap-2">
-          <span
-            className={`${compact ? "text-[15px]" : "text-[19px]"} font-bold tracking-tight text-slate-900 dark:text-white`}
-          >
-            FatahTech
-          </span>
-          <span className="bg-[#bbf2ff] text-[#0a3641] text-[10px] font-extrabold tracking-wider px-2.5 py-0.5 rounded-full uppercase">
-            SUBTITLES
-          </span>
-        </span>
-
-        {/* Bottom Row: Ecosystem Tagline */}
-        {!compact ? (
-          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
-            Part of FatahTech Ecosystem
-          </span>
-        ) : null}
-      </span>
-    </span>
-  );
+  return <BrandLockup compact={compact} static />;
 }
 
 const WAVE_HEIGHTS = Array.from(
@@ -120,9 +80,7 @@ export function EditorPreview() {
                 fetchPriority="high"
                 sizes="(max-width: 640px) 82vw, (max-width: 1024px) 60vw, 440px"
               />
-              <span className={styles.faceBox}>
-                Face: Safe Zone
-              </span>
+              <span className={styles.faceBox}>Face: Safe Zone</span>
               <span className={styles.previewCaption}>
                 This is how you build something <mark>people love.</mark>
               </span>

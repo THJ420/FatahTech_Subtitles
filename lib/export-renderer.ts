@@ -61,12 +61,17 @@ export const WATERMARK_TEXT = "fatahtech.com";
 
 export function getBrandingWatermarkMetrics(width: number, height: number) {
   // Limit the mark by both dimensions so portrait video does not enlarge it.
-  // No fixed pixel minimum: small previews must match the exported proportions.
-  const fontSize = Math.max(0, Math.min(width * 0.014, height * 0.008));
+  // Small previews get a legible floor; larger canvases scale proportionally.
+  const fontSize = Math.max(11, Math.min(width * 0.022, height * 0.032));
   return {
     fontSize,
-    shadowBlur: fontSize * 0.2,
-    shadowOffsetY: fontSize * 0.06,
+    paddingX: fontSize * 0.62,
+    paddingY: fontSize * 0.36,
+    radius: fontSize * 0.55,
+    marginX: Math.max(8, width * 0.025),
+    marginY: Math.max(8, height * 0.018),
+    shadowBlur: fontSize * 0.5,
+    shadowOffsetY: fontSize * 0.12,
   };
 }
 
@@ -77,22 +82,48 @@ export function drawBrandingWatermark(
   showWatermark?: boolean,
 ) {
   if (showWatermark === false) return;
-  const { fontSize, shadowBlur, shadowOffsetY } = getBrandingWatermarkMetrics(
-    w,
-    h,
-  );
-  const paddingX = w * 0.025;
-  const paddingY = h * 0.018;
+  const {
+    fontSize,
+    paddingX,
+    paddingY,
+    radius,
+    marginX,
+    marginY,
+    shadowBlur,
+    shadowOffsetY,
+  } = getBrandingWatermarkMetrics(w, h);
   ctx.save();
   ctx.font = `700 ${fontSize}px ${WATERMARK_FONT_FAMILY}`;
-  ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
-  ctx.textAlign = "right";
-  ctx.textBaseline = "bottom";
-  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+  const textMetrics = ctx.measureText(WATERMARK_TEXT);
+  const ascent = textMetrics.actualBoundingBoxAscent || fontSize * 0.72;
+  const descent = textMetrics.actualBoundingBoxDescent || fontSize * 0.2;
+  const pillWidth = textMetrics.width + paddingX * 2;
+  const pillHeight = ascent + descent + paddingY * 2;
+  const pillX = w - marginX - pillWidth;
+  const pillY = h - marginY - pillHeight;
+
+  // Rounded dark badge keeps the mark legible over bright footage.
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, radius);
+  ctx.fillStyle = "rgba(8, 15, 35, 0.62)";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
   ctx.shadowBlur = shadowBlur;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = shadowOffsetY;
-  ctx.fillText(WATERMARK_TEXT, w - paddingX, h - paddingY);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.lineWidth = Math.max(1, fontSize * 0.045);
+  ctx.strokeStyle = "rgba(147, 180, 255, 0.4)";
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(
+    WATERMARK_TEXT,
+    w - marginX - paddingX,
+    pillY + paddingY + ascent,
+  );
   ctx.restore();
 }
 

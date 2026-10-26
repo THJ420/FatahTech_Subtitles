@@ -586,9 +586,9 @@ export function WordStylePopover({
               className={cn(
                 "flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg border text-[10px] font-medium transition-colors",
                 activeSection === s.key
-                  ? "bg-yellow-50 text-foreground border-yellow-400"
+                  ? "bg-primary-fixed/40 text-foreground border-primary"
                   : s.hasValue
-                    ? "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                    ? "bg-accent text-accent-foreground border-primary/30 hover:bg-accent/70"
                     : "bg-muted text-muted-foreground border-border hover:bg-muted",
               )}
             >

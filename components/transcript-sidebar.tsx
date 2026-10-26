@@ -476,7 +476,7 @@ export function TranscriptSidebar({
               className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors ${
                 hideSkipped
                   ? "bg-primary text-primary-foreground"
-                  : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                  : "bg-primary-fixed/50 text-primary hover:bg-primary-fixed"
               }`}
               title={
                 hideSkipped
@@ -605,7 +605,7 @@ export function TranscriptSidebar({
                   <div>
                     <div className="flex justify-between items-start">
                       <p
-                        className={`${panelStyles.chunkText} ${isActive ? "font-medium" : ""} ${isDisabled ? "line-through text-muted-foreground" : ""} ${isHidden && !isDisabled ? "italic text-yellow-800" : ""}`}
+                        className={`${panelStyles.chunkText} ${isActive ? "font-medium" : ""} ${isDisabled ? "line-through text-muted-foreground" : ""} ${isHidden && !isDisabled ? "italic text-primary/80" : ""}`}
                       >
                         {chunk.text}
                       </p>
@@ -649,7 +649,7 @@ export function TranscriptSidebar({
                           {isDisabled ? (
                             <SkipForward className="h-3 w-3 text-red-500" />
                           ) : isHidden ? (
-                            <EyeOff className="h-3 w-3 text-yellow-600" />
+                            <EyeOff className="h-3 w-3 text-primary" />
                           ) : (
                             <Eye className="h-3 w-3" />
                           )}

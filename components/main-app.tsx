@@ -11,6 +11,7 @@ import {
 } from "react";
 import { MobileSubtitleStyling } from "@/components/editor/mobile-subtitle-styling";
 import { VideoUpload } from "@/components/video-upload";
+import { BrandLockup } from "@/components/brand-lockup";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Upload,
@@ -828,15 +829,7 @@ export function MainApp({
         <h1 className="sr-only">FatahTech Subtitles video editor</h1>
       ) : null}
       <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.brand}
-          onClick={() => setShowAboutSheet(true)}
-          aria-label="About FatahTech Subtitles"
-        >
-          <span className={styles.brandMark}>FT</span>
-          <span>FatahTech Subtitles</span>
-        </button>
+        <BrandLockup />
         <span className={styles.projectName} title={uploadedFile?.name}>
           {uploadedFile?.name || "Untitled Project"}
         </span>

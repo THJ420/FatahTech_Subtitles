@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Sparkles } from "lucide-react";
 import { changelog, APP_VERSION, type ChangelogEntry } from "@/lib/changelog";
 import { SiteFooter } from "@/components/site-footer";
-import { LandingBrand } from "@/components/landing-page/landing-visuals";
+import { BrandLockup } from "@/components/brand-lockup";
 import styles from "./changelog.module.css";
 
 export const metadata = {
@@ -67,9 +67,7 @@ export default function ChangelogPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <Link href="/" aria-label="FatahTech Subtitles home">
-            <LandingBrand />
-          </Link>
+          <BrandLockup />
           <Link href="/" className={styles.backLink}>
             <ArrowLeft size={16} />
             Back to app

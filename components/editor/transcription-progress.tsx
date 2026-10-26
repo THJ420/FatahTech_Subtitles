@@ -69,7 +69,7 @@ const benefits = [
     icon: LockKeyhole,
     title: "Your video stays private",
     detail: "No video uploads.",
-    tone: "yellow",
+    tone: "cyan",
   },
   {
     icon: Zap,

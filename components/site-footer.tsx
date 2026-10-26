@@ -2,9 +2,7 @@ import Link from "next/link";
 import { MessageSquare, Rss, Share2, Terminal } from "lucide-react";
 import { APP_VERSION } from "@/lib/changelog";
 import { GitHubIcon } from "@/components/icons/github-icon";
-import {
-  LandingBrand,
-} from "@/components/landing-page/landing-visuals";
+import { BrandLockup } from "@/components/brand-lockup";
 import styles from "@/components/landing-page/landing.module.css";
 
 const REPOSITORY_URL = "https://github.com/THJ420/FatahTech_Subtitles";
@@ -132,9 +130,7 @@ export function SiteFooter({
     <footer className={`${styles.container} ${styles.footer}`}>
       <div className={styles.footerMain}>
         <div className={styles.footerAbout}>
-          <a href="#" aria-label="FatahTech Subtitles home">
-            <LandingBrand />
-          </a>
+          <BrandLockup />
           <p>
             High-performance, on-device AI transcription
             <br />

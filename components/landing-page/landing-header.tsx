@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { GitHubIcon } from "@/components/icons/github-icon";
 import { APP_VERSION } from "@/lib/changelog";
-import { LandingBrand } from "./landing-visuals";
+import { BrandLockup } from "@/components/brand-lockup";
 import styles from "./landing.module.css";
 
 /**
@@ -22,9 +22,7 @@ export function LandingHeader() {
   return (
     <header className={styles.header}>
       <div className={`${styles.container} ${styles.headerInner}`}>
-        <a href="#top" aria-label="FatahTech Subtitles home">
-          <LandingBrand />
-        </a>
+        <BrandLockup />
         <nav className={styles.navigation} aria-label="Main navigation">
           {NAV_LINKS.map((link) => (
             <a key={link.href} href={link.href}>

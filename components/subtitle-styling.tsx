@@ -935,7 +935,7 @@ export function SubtitleStyling({
                     }
                     className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-xs font-medium transition-all ${
                       isActive
-                        ? "border-yellow-400 bg-yellow-50 text-foreground"
+                        ? "border-primary bg-primary-fixed/40 text-foreground"
                         : "border-border/50 bg-background text-muted-foreground hover:border-border hover:text-foreground"
                     }`}
                   >

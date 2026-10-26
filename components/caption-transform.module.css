@@ -8,19 +8,19 @@
   touch-action: none;
   cursor: move;
   user-select: none;
-  outline: 1px dashed #ffe60099;
+  outline: 1px dashed #2563eb99;
   outline-offset: 2px;
 }
 .box[data-editable="true"]:hover,
 .box[data-editable="true"]:focus-within {
-  outline: 2px solid #ffe600;
+  outline: 2px solid #2563eb;
 }
 .handle {
   position: absolute;
   width: 14px;
   height: 14px;
   background: #fff;
-  border: 2px solid #685c00;
+  border: 2px solid #1d4ed8;
   border-radius: 3px;
   z-index: 1;
   touch-action: none;
@@ -72,11 +72,11 @@
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  border: 1px solid #e0c900;
+  border: 1px solid #93b4ff;
   border-radius: 6px;
   padding: 5px 9px;
-  background: #fff3a3;
-  color: #292719;
+  background: #dbe1ff;
+  color: #003ea8;
   cursor: pointer;
   font: 600 12px/1.4 sans-serif;
   text-shadow: none;

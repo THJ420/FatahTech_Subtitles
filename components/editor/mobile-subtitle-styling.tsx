@@ -31,7 +31,7 @@ export function MobileSubtitleStyling({
             type="button"
             aria-pressed={tab === name}
             onClick={() => setTab(name)}
-            className={`flex-1 rounded-md py-2 text-xs font-semibold ${tab === name ? "bg-yellow-300 text-neutral-950" : ""}`}
+            className={`flex-1 rounded-md py-2 text-xs font-semibold transition-colors ${tab === name ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
           >
             {name}
           </button>
@@ -50,7 +50,7 @@ export function MobileSubtitleStyling({
                 type="button"
                 aria-pressed={mode === value}
                 onClick={() => onModeChange?.(value)}
-                className={`flex-1 rounded-md border py-2 text-xs ${mode === value ? "bg-yellow-100 border-yellow-400" : ""}`}
+                className={`flex-1 rounded-md border py-2 text-xs transition-colors ${mode === value ? "bg-primary-fixed/40 border-primary text-primary font-medium" : ""}`}
               >
                 {value === "word" ? "Word" : "Line"}
               </button>
