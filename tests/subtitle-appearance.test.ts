@@ -36,6 +36,7 @@ const baseStyle: SubtitleStyle = {
   backgroundRemovalEnabled: false,
   backgroundType: "solid",
   solidBackgroundColor: "#000000",
+  blurIntensity: 50,
   dynamicEnabled: false,
   dynamicFontSize: 80,
   dynamicYPosition: 35,

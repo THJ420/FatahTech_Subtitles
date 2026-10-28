@@ -35,14 +35,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CameraRecorder } from "@/components/landing-page/camera-recorder";
-import {
-  SAMPLE_FPS as SAMPLE_MASK_FPS,
-  type MaskData,
-} from "@/hooks/useBackgroundRemoval";
+import { type MaskData } from "@/hooks/useBackgroundRemoval";
 import {
   renderDynamicBehindText,
   renderDynamicFrontText,
-  estimateFaceFromMask,
 } from "@/lib/render-subtitle";
 import {
   drawBrandingWatermark,
@@ -51,6 +47,18 @@ import {
   WATERMARK_TEXT,
 } from "@/lib/export-renderer";
 import { computeCropX } from "@/lib/person-tracking";
+import {
+  createCompositeScratch,
+  drawBackgroundLayer,
+  drawMaskedForeground,
+  maskRectFor,
+  releaseCompositeScratch,
+} from "@/lib/bg-composite";
+import {
+  loadBackgroundImage,
+  resolveBackgroundFill,
+  type BackgroundImageSource,
+} from "@/lib/video-background";
 import {
   adjustTranscriptChunksForSilenceRemoval,
   createVideoCutPlan,
@@ -120,7 +128,7 @@ interface VideoUploadProps {
   zoomPortrait: boolean;
   initialFile?: File | null;
   bgRemovalReady?: boolean;
-  getMaskAtTime?: (time: number, fps?: number) => MaskData | null;
+  getMaskAtTime?: (time: number) => MaskData | null;
   getCenterX?: () => number;
   getFaces?: () => TrackedFace[];
   stackedPortrait?: boolean;
@@ -180,10 +188,11 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
     const [localTime, setLocalTime] = useState(0);
     const processedFileRef = useRef<File | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [backgroundImage, setBackgroundImage] =
+      useState<BackgroundImageSource | null>(null);
     const faceTrackCanvasRef = useRef<HTMLCanvasElement>(null);
     const animFrameRef = useRef<number>(0);
     const faceTrackAnimFrameRef = useRef<number>(0);
-    const blurCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const seekBarFillRef = useRef<HTMLDivElement>(null);
     const timeDisplayRef = useRef<HTMLSpanElement>(null);
     const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -554,6 +563,26 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
       ref,
       syncPreviewTime,
     ]);
+    // Decode the custom background once per selection. The rAF loop then draws
+    // the decoded element directly instead of re-parsing the data URL.
+    useEffect(() => {
+      const source =
+        subtitleStyle.backgroundType === "image"
+          ? subtitleStyle.customBackgroundImage
+          : undefined;
+      if (!source) {
+        setBackgroundImage(null);
+        return;
+      }
+      let cancelled = false;
+      void loadBackgroundImage(source).then((image) => {
+        if (!cancelled) setBackgroundImage(image);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [subtitleStyle.backgroundType, subtitleStyle.customBackgroundImage]);
+
     // Canvas compositing loop for background removal preview
     useEffect(() => {
       if (!compositingActive || !canvasRef.current) {
@@ -571,21 +600,17 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // Create reusable temp canvases
-      if (!blurCanvasRef.current) {
-        blurCanvasRef.current = document.createElement("canvas");
-      }
-      const fgCanvas = document.createElement("canvas");
-      const fgCtx = fgCanvas.getContext("2d");
-      const maskCanvas = document.createElement("canvas");
-      const maskCtx = maskCanvas.getContext("2d");
+      // One shared compositor owns every scratch surface (foreground, mask,
+      // blur). Allocating them here rather than per frame keeps the rAF loop
+      // allocation-free.
+      const scratch = createCompositeScratch(false);
 
-      // Reusable ImageData for mask — avoids allocating ~8MB per frame
-      let cachedMaskImageData: ImageData | null = null;
-      let lastMaskW = 0;
-      let lastMaskH = 0;
-      // Track last mask reference — skip expensive pixel conversion when mask hasn't changed (5fps cache)
-      let lastMask: ReturnType<typeof getMaskAtTime> = null;
+      // Resolved once per effect run, not per frame. Transparent composites to
+      // a checkerboard here; the export path substitutes a solid colour.
+      const backgroundFill = resolveBackgroundFill(subtitleStyle, {
+        image: backgroundImage,
+        allowTransparent: true,
+      }).fill;
 
       // Track last rendered time to skip redundant draws when paused
       let lastRenderedTime = -1;
@@ -620,9 +645,12 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
           canvas.height = displayHeight;
         }
 
-        // Look ahead by half a frame interval so the mask is centered around the
-        // current time rather than always lagging behind (reduces perceived lag by ~50%).
-        const mask = getMaskAtTime!(time + 0.5 / SAMPLE_MASK_FPS);
+        // Nearest sample, with no forward bias. Masks are pre-computed, so
+        // there is no inference lag to compensate for — only sampling
+        // quantisation, and rounding is the minimum-error choice. The old
+        // +0.5-sample lookahead pushed the matte ahead of the frame it was
+        // composited onto, which is what produced edge trailing in motion.
+        const mask = getMaskAtTime!(time);
 
         // Compute center-crop region when canvas AR differs from video AR
         // (e.g. landscape video shown in a 9:16 container with object-cover)
@@ -660,103 +688,54 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
         }
 
         const isDynamic = subtitleStyle.dynamicEnabled;
+        const sourceRect = { x: sx, y: sy, width: sw, height: sh };
 
-        // Step 1: Draw background layer
-        if (isDynamic) {
-          // Dynamic mode: keep original video as background
-          ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, w, h);
-        } else if (subtitleStyle.backgroundType === "blur") {
-          const blurCanvas = blurCanvasRef.current!;
-          if (blurCanvas.width !== w || blurCanvas.height !== h) {
-            blurCanvas.width = w;
-            blurCanvas.height = h;
-          }
-          const blurCtx = blurCanvas.getContext("2d");
-          if (blurCtx) {
-            blurCtx.filter = "blur(20px)";
-            blurCtx.drawImage(videoEl, 0, 0, w, h);
-            blurCtx.filter = "none";
-            ctx.drawImage(blurCanvas, 0, 0);
-          }
-        } else {
-          ctx.fillStyle = subtitleStyle.solidBackgroundColor;
-          ctx.fillRect(0, 0, w, h);
-        }
+        // Step 1: background layer. Every branch is framed from `sourceRect`,
+        // so the backdrop can never disagree with the foreground crop.
+        drawBackgroundLayer({
+          ctx,
+          frame: videoEl,
+          sourceRect,
+          destWidth: w,
+          destHeight: h,
+          fill: isDynamic ? { kind: "original" } : backgroundFill,
+          scratch,
+        });
 
         // Step 2: Render subtitle behind person (dynamic mode only)
         if (isDynamic && transcript) {
           renderDynamicBehindText(ctx, transcript, time, subtitleStyle, w, h);
         }
 
-        // Step 3: Draw masked foreground using canvas compositing
-        if (fgCtx && maskCtx) {
-          if (fgCanvas.width !== w || fgCanvas.height !== h) {
-            fgCanvas.width = w;
-            fgCanvas.height = h;
-          }
-
-          // Draw video frame onto foreground canvas (with crop)
-          fgCtx.clearRect(0, 0, w, h);
-          fgCtx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, w, h);
-
-          // Resize mask canvas only when mask dimensions change
-          if (
-            maskCanvas.width !== mask.width ||
-            maskCanvas.height !== mask.height
-          ) {
-            maskCanvas.width = mask.width;
-            maskCanvas.height = mask.height;
-          }
-
-          // Only re-process mask pixels when the mask reference changes (5fps cache → skip ~55/60 frames)
-          if (mask !== lastMask) {
-            lastMask = mask;
-
-            if (lastMaskW !== mask.width || lastMaskH !== mask.height) {
-              cachedMaskImageData = maskCtx.createImageData(
-                mask.width,
-                mask.height,
-              );
-              lastMaskW = mask.width;
-              lastMaskH = mask.height;
-            }
-
-            const maskImageData = cachedMaskImageData!;
-            const pixels = maskImageData.data;
-            for (let i = 0; i < mask.data.length; i++) {
-              const idx = i * 4;
-              pixels[idx] = 255; // R
-              pixels[idx + 1] = 255; // G
-              pixels[idx + 2] = 255; // B
-              pixels[idx + 3] = mask.data[i]; // A = mask alpha
-            }
-            maskCtx.putImageData(maskImageData, 0, 0);
-          }
-
-          // Use destination-in to clip the video frame to the mask shape.
-          // Apply the same crop as the video so the mask aligns with the
-          // visible region (e.g. landscape → portrait center/face-track crop).
-          fgCtx.globalCompositeOperation = "destination-in";
-          const msx = (sx / vw) * maskCanvas.width;
-          const msy = (sy / vh) * maskCanvas.height;
-          const msw = (sw / vw) * maskCanvas.width;
-          const msh = (sh / vh) * maskCanvas.height;
-          fgCtx.drawImage(maskCanvas, msx, msy, msw, msh, 0, 0, w, h);
-          fgCtx.globalCompositeOperation = "source-over";
-
-          // Draw masked foreground onto main canvas
-          ctx.drawImage(fgCanvas, 0, 0);
-        }
+        // Step 3: masked foreground. The compositor derives the mask crop from
+        // the same `sourceRect`, so the silhouette always aligns with the frame.
+        drawMaskedForeground({
+          ctx,
+          frame: videoEl,
+          sourceRect,
+          destWidth: w,
+          destHeight: h,
+          mask: mask.data,
+          maskWidth: mask.width,
+          maskHeight: mask.height,
+          maskRect: maskRectFor(
+            { width: vw, height: vh },
+            sourceRect,
+            mask.width,
+            mask.height,
+          ),
+          scratch,
+        });
 
         // Step 4: Render front depth text. Normal captions use VideoCaption.
         if (isDynamic && transcript) {
-          const faceBounds = estimateFaceFromMask(
-            mask.data,
-            mask.width,
-            mask.height,
-            w,
-            h,
-          );
+          // The chin line is computed once, when the mask is stored, instead of
+          // re-scanning every pixel on every rendered frame. It is a fraction
+          // of the full frame, so translate it through the same crop.
+          const chinY =
+            mask.meta?.chinY != null
+              ? (mask.meta.chinY * vh - sy) * (h / sh)
+              : null;
           renderDynamicFrontText(
             ctx,
             transcript,
@@ -764,7 +743,7 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
             subtitleStyle,
             w,
             h,
-            faceBounds,
+            chinY != null ? { chinY } : null,
           );
         }
 
@@ -781,11 +760,13 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
           cancelAnimationFrame(animFrameRef.current);
           animFrameRef.current = 0;
         }
+        releaseCompositeScratch(scratch);
       };
     }, [
       compositingActive,
       ref,
       subtitleStyle,
+      backgroundImage,
       transcript,
       getMaskAtTime,
       isFaceTrackingActive,

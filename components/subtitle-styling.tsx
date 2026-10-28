@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { DebouncedColorInput } from "@/components/ui/debounced-color-input";
 import panelStyles from "@/components/editor-panels.module.css";
 import { getWordEmphasisBackground } from "@/lib/subtitle-appearance";
+import type { BackgroundType } from "@/lib/video-background";
 
 // Helper to check if a color is effectively transparent
 function isTransparentColor(color: string): boolean {
@@ -64,8 +65,12 @@ export interface SubtitleStyle {
   position: "top" | "middle" | "bottom";
   maxWordsPerLine: number;
   backgroundRemovalEnabled: boolean;
-  backgroundType: "solid" | "blur";
+  backgroundType: BackgroundType;
   solidBackgroundColor: string;
+  /** Blur strength, 0–100. Maps to 2–38px radius. */
+  blurIntensity: number;
+  /** Data URL for `backgroundType: "image"`. */
+  customBackgroundImage?: string;
   // Dynamic subtitle controls
   dynamicEnabled: boolean; // toggle for behind/front 3D depth effect
   dynamicFontSize: number; // behind text font size in px at 500px preview height (default 80)

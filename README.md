@@ -256,10 +256,14 @@ This approach gives accuracy identical to the single full pipeline call (same ch
 
 ### Background Removal
 
-A second Web Worker runs **MODNet** (`Xenova/modnet`) for AI person segmentation on video frames and returns masks at 5fps. The masks are cached and reused at 30fps during both preview and export.
+A dedicated background worker runs either **BiRefNet_lite** (`onnx-community/BiRefNet_lite-ONNX`, universal salient-object matting; default on WebGPU) or **MODNet** (`Xenova/modnet`, fast person matting; the CPU/WASM tier or explicit Person mode). Model and processing quality can be overridden in Video settings. On CPU, BiRefNet's published graph is fixed at 1024²; the worker detects that at load time and falls back to the Person model with a visible compatibility notice.
+
+Masks are generated in a progressive two-pass run: a sparse coarse pass unlocks the preview, then the remaining samples refine. The budgeted `MaskStore` keeps mask memory bounded, and every matte is refined in the worker — percentile levelling, smoothstep thresholding, morphology, connected-component filtering, feathering and motion-gated temporal blending. Completed slabs are persisted in IndexedDB, keyed by file size, duration, model, sample rate and mask resolution, so reopening a clip can skip inference. **Re-analyze video** in the settings panel clears the cache and reruns the analysis.
+
+Preview and export composite through the same `lib/bg-composite.ts` path and the same solid/blur/image/transparent fill resolver. Export never runs live inference; frames without a stored mask render the original frame and are reported in the export status.
 
 ```
-Video Frames → BG Removal Worker → Masks[] → Composited Canvas
+Video Frames → BG Worker (BiRefNet / MODNet) → MaskStore → Compositor → Preview / Export
 ```
 
 ### Face Tracking

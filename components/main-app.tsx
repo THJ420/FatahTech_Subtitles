@@ -63,6 +63,11 @@ import {
 import { useVideoDownloadMediaBunny } from "@/hooks/useVideoDownloadMediaBunny";
 import { useBackgroundRemoval } from "@/hooks/useBackgroundRemoval";
 import { getBackgroundRemovalWarningDuration } from "@/lib/background-removal-warning";
+import { detectHardwareCapabilities } from "@/lib/hardware-check";
+import { selectBgModel, type BgModelId } from "@/lib/bg-models";
+import { describeBgRemovalError, isAbortError } from "@/lib/bg-errors";
+import { DEFAULT_QUALITY_TIER, type BgQualityTier } from "@/lib/bg-quality";
+import { DEFAULT_BLUR_INTENSITY } from "@/lib/video-background";
 import { useFaceTracking } from "@/hooks/useFaceTracking";
 import { type LanguageCode } from "@/components/language-selector";
 import { LanguageSelectionModal } from "@/components/language-selection-modal";
@@ -131,6 +136,7 @@ const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
   backgroundRemovalEnabled: false,
   backgroundType: "solid",
   solidBackgroundColor: "#000000",
+  blurIntensity: DEFAULT_BLUR_INTENSITY,
   dynamicEnabled: false,
   dynamicFontSize: 80,
   dynamicYPosition: 35,
@@ -142,6 +148,15 @@ const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
   splitSubtitleMode: "none",
   verticalOffset: -10,
 };
+
+type BgModelPreference = BgModelId | "auto";
+type PersonEffect = "depth" | "background";
+
+interface PendingPersonEffect {
+  effect: PersonEffect;
+  model: BgModelPreference;
+  tier: BgQualityTier;
+}
 
 const mobileQuery = "(max-width: 767px)";
 function subscribeMobile(callback: () => void) {
@@ -207,7 +222,15 @@ export function MainApp({
   const [bgConfirmationDuration, setBgConfirmationDuration] = useState<
     number | null
   >(null);
-  const pendingPersonEffectRef = useRef<"depth" | "background">("background");
+  const [bgModelPreference, setBgModelPreference] =
+    useState<BgModelPreference>("auto");
+  const [bgQualityTier, setBgQualityTier] =
+    useState<BgQualityTier>(DEFAULT_QUALITY_TIER);
+  const pendingPersonEffectRef = useRef<PendingPersonEffect>({
+    effect: "background",
+    model: "auto",
+    tier: DEFAULT_QUALITY_TIER,
+  });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [selectedWordTimestamp, setSelectedWordTimestamp] = useState<
     [number, number] | null
@@ -235,12 +258,23 @@ export function MainApp({
   const {
     isModelLoading: isBgModelLoading,
     isProcessing: isBgProcessing,
+    phase: bgPhase,
     progress: bgProgress,
     isReady: bgRemovalReady,
+    device: bgDevice,
+    carriedFrames: bgCarriedFrames,
+    activeModelId: bgActiveModelId,
+    fallbackReason: bgFallbackReason,
+    hardwareWarning: bgHardwareWarning,
+    subjectCoverage: bgSubjectCoverage,
+    subjectDetected: bgSubjectDetected,
+    maskPlan: bgMaskPlan,
+    restoredFromCache: bgRestoredFromCache,
     processVideo: processBgRemoval,
     getMaskAtTime,
+    clearMasks: clearBgMasks,
+    clearMaskCache: clearBgMaskCache,
     reset: resetBgRemoval,
-    processFrame: bgProcessFrame,
   } = useBackgroundRemoval();
 
   const {
@@ -481,7 +515,6 @@ export function MainApp({
     videoDuration,
     cropTrackingEnabled:
       faceTrackingEnabled && ratio === "9:16" && isVideoLandscape,
-    processFrame: bgProcessFrame,
     getMaskAtTime,
     buildExportTimeline:
       stackedPortrait ||
@@ -495,34 +528,110 @@ export function MainApp({
     autoZoomEnabled: autoZoomEnabled && !stackedPortrait,
   });
 
+  const handleExport = useCallback(() => {
+    if (
+      bgRemovalReady &&
+      subtitleStyle.backgroundRemovalEnabled &&
+      subtitleStyle.backgroundType === "transparent"
+    ) {
+      toast.info(
+        `Transparent preview exports with ${subtitleStyle.solidBackgroundColor} because MP4/WebM cannot store alpha.`,
+      );
+    }
+    void downloadVideo();
+  }, [
+    bgRemovalReady,
+    downloadVideo,
+    subtitleStyle.backgroundRemovalEnabled,
+    subtitleStyle.backgroundType,
+    subtitleStyle.solidBackgroundColor,
+  ]);
+
   const startBgRemoval = useCallback(
-    async (effect: "depth" | "background") => {
+    async (
+      effect: PersonEffect,
+      options: {
+        model?: BgModelPreference;
+        tier?: BgQualityTier;
+        fast?: boolean;
+      } = {},
+    ) => {
       if (!videoRef.current) return;
+      const model = options.fast
+        ? "modnet"
+        : (options.model ?? bgModelPreference);
+      const tier = options.fast ? "fast" : (options.tier ?? bgQualityTier);
+      if (options.fast) {
+        setBgModelPreference("modnet");
+        setBgQualityTier("fast");
+      }
       setSubtitleStyle((prev) => ({
         ...prev,
         backgroundRemovalEnabled: effect === "background",
         dynamicEnabled: effect === "depth",
       }));
       try {
-        await processBgRemoval(videoRef.current, videoDuration);
+        // An explicit choice wins over the hardware gates. Automatic mode keeps
+        // the tiering so weak devices get the person model by default.
+        const capabilities = await detectHardwareCapabilities();
+        const selection = selectBgModel(
+          capabilities,
+          model === "auto" ? null : model,
+        );
+        if (selection.fallbackReason) {
+          toast.info(selection.fallbackReason);
+        }
+        if (selection.hardwareWarning) {
+          toast.warning(selection.hardwareWarning);
+        }
+        await processBgRemoval(
+          videoRef.current,
+          videoDuration,
+          selection,
+          tier,
+        );
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError")
-          return;
+        if (isAbortError(error)) return;
         setSubtitleStyle((previous) => ({
           ...previous,
           backgroundRemovalEnabled: false,
           dynamicEnabled: false,
         }));
-        toast.error(
-          "Background removal failed. This feature requires WebGPU or WASM support, which may not be available on your device.",
-        );
+        // Load-time hardware failures and runtime frame failures have very
+        // different causes; only the former may mention device support.
+        toast.error(describeBgRemovalError(error));
       }
     },
-    [processBgRemoval, videoDuration],
+    [bgModelPreference, bgQualityTier, processBgRemoval, videoDuration],
+  );
+
+  /**
+   * Ask before starting a long analysis, then honour the chosen settings.
+   * Setting changes go through here too, so a model swap on a long clip still
+   * asks before spending minutes of compute.
+   */
+  const requestBgRemoval = useCallback(
+    (
+      effect: PersonEffect,
+      settings: { model: BgModelPreference; tier: BgQualityTier },
+    ) => {
+      if (!videoRef.current) return;
+      pendingPersonEffectRef.current = { effect, ...settings };
+      const warningDuration = getBackgroundRemovalWarningDuration(
+        videoRef.current.duration,
+        videoDuration,
+      );
+      if (warningDuration !== null) {
+        setBgConfirmationDuration(warningDuration);
+        return;
+      }
+      void startBgRemoval(effect, settings);
+    },
+    [startBgRemoval, videoDuration],
   );
 
   const handlePersonEffect = useCallback(
-    (effect: "depth" | "background") => {
+    (effect: PersonEffect) => {
       if (!videoRef.current) return;
       if (bgRemovalReady) {
         setSubtitleStyle((previous) => ({
@@ -532,19 +641,85 @@ export function MainApp({
         }));
         return;
       }
-      pendingPersonEffectRef.current = effect;
-      const warningDuration = getBackgroundRemovalWarningDuration(
-        videoRef.current.duration,
-        videoDuration,
-      );
-      if (warningDuration !== null) {
-        setBgConfirmationDuration(warningDuration);
-        return;
-      }
-      void startBgRemoval(effect);
+      requestBgRemoval(effect, {
+        model: bgModelPreference,
+        tier: bgQualityTier,
+      });
     },
-    [bgRemovalReady, startBgRemoval, videoDuration],
+    [bgModelPreference, bgQualityTier, bgRemovalReady, requestBgRemoval],
   );
+
+  /**
+   * A setting that shapes the masks invalidates the cache. If the effect is
+   * live, re-analyse immediately with the new settings; otherwise drop the
+   * cache and let the next "Remove background" run pick them up.
+   */
+  const handleBgSettingsChange = useCallback(
+    (model: BgModelPreference, tier: BgQualityTier) => {
+      const effect: PersonEffect = subtitleStyle.dynamicEnabled
+        ? "depth"
+        : "background";
+      const active =
+        subtitleStyle.backgroundRemovalEnabled || subtitleStyle.dynamicEnabled;
+      // The cached masks belong to the previous settings. Drop them even when
+      // the confirmation dialog is cancelled, otherwise a later toggle would
+      // composite with stale masks.
+      clearBgMasks();
+      if (bgRemovalReady && active) {
+        requestBgRemoval(effect, { model, tier });
+      }
+    },
+    [
+      bgRemovalReady,
+      clearBgMasks,
+      requestBgRemoval,
+      subtitleStyle.backgroundRemovalEnabled,
+      subtitleStyle.dynamicEnabled,
+    ],
+  );
+
+  const handleBgModelPreferenceChange = useCallback(
+    (model: BgModelPreference) => {
+      if (model === bgModelPreference) return;
+      setBgModelPreference(model);
+      handleBgSettingsChange(model, bgQualityTier);
+    },
+    [bgModelPreference, bgQualityTier, handleBgSettingsChange],
+  );
+
+  const handleBgQualityTierChange = useCallback(
+    (tier: BgQualityTier) => {
+      if (tier === bgQualityTier) return;
+      setBgQualityTier(tier);
+      handleBgSettingsChange(bgModelPreference, tier);
+    },
+    [bgModelPreference, bgQualityTier, handleBgSettingsChange],
+  );
+
+  /** Drop the persisted masks and force a fresh inference pass. */
+  const handleReanalyzeBg = useCallback(() => {
+    void (async () => {
+      await clearBgMaskCache();
+      const effect: PersonEffect = subtitleStyle.dynamicEnabled
+        ? "depth"
+        : "background";
+      const active =
+        subtitleStyle.backgroundRemovalEnabled || subtitleStyle.dynamicEnabled;
+      if (active) {
+        requestBgRemoval(effect, {
+          model: bgModelPreference,
+          tier: bgQualityTier,
+        });
+      }
+    })();
+  }, [
+    bgModelPreference,
+    bgQualityTier,
+    clearBgMaskCache,
+    requestBgRemoval,
+    subtitleStyle.backgroundRemovalEnabled,
+    subtitleStyle.dynamicEnabled,
+  ]);
 
   const handleCancelBgRemoval = useCallback(() => {
     resetBgRemoval();
@@ -572,6 +747,8 @@ export function MainApp({
 
     // Reset background removal
     resetBgRemoval();
+    setBgModelPreference("auto");
+    setBgQualityTier(DEFAULT_QUALITY_TIER);
     silenceDetectionRunIdRef.current += 1;
     silenceDetectionAbortRef.current?.abort();
     setSilenceRemovalLevel("off");
@@ -887,7 +1064,7 @@ export function MainApp({
               <ExportMenu
                 quality={exportQuality}
                 onQualityChange={setExportQuality}
-                onExport={downloadVideo}
+                onExport={handleExport}
                 processing={isDownloadProcessing}
                 longVideo={videoDuration > 30 * 60}
                 disabled={
@@ -1256,8 +1433,16 @@ export function MainApp({
                       onTrackingChange={setFaceTrackingEnabled}
                       backgroundEnabled={subtitleStyle.backgroundRemovalEnabled}
                       backgroundReady={bgRemovalReady}
+                      modelPreference={bgModelPreference}
+                      qualityTier={bgQualityTier}
+                      onModelPreferenceChange={handleBgModelPreferenceChange}
+                      onQualityTierChange={handleBgQualityTierChange}
                       backgroundType={subtitleStyle.backgroundType}
                       backgroundColor={subtitleStyle.solidBackgroundColor}
+                      blurIntensity={subtitleStyle.blurIntensity}
+                      customBackgroundImage={
+                        subtitleStyle.customBackgroundImage
+                      }
                       onBackgroundTypeChange={(backgroundType) =>
                         setSubtitleStyle((previous) => ({
                           ...previous,
@@ -1270,9 +1455,33 @@ export function MainApp({
                           solidBackgroundColor,
                         }))
                       }
+                      onBlurIntensityChange={(blurIntensity) =>
+                        setSubtitleStyle((previous) => ({
+                          ...previous,
+                          blurIntensity,
+                        }))
+                      }
+                      onCustomBackgroundImageChange={(customBackgroundImage) =>
+                        setSubtitleStyle((previous) => ({
+                          ...previous,
+                          customBackgroundImage:
+                            customBackgroundImage ?? undefined,
+                        }))
+                      }
                       modelLoading={isBgModelLoading}
                       processing={isBgProcessing}
+                      phase={bgPhase}
                       progress={bgProgress}
+                      activeModelId={bgActiveModelId}
+                      device={bgDevice}
+                      fallbackReason={bgFallbackReason}
+                      hardwareWarning={bgHardwareWarning}
+                      subjectCoverage={bgSubjectCoverage}
+                      subjectDetected={bgSubjectDetected}
+                      carriedFrames={bgCarriedFrames}
+                      maskPlan={bgMaskPlan}
+                      restoredFromCache={bgRestoredFromCache}
+                      onReanalyze={handleReanalyzeBg}
                       disabled={isDownloadProcessing || stackedPortrait}
                       onRemoveBackground={() =>
                         handlePersonEffect("background")
@@ -1596,13 +1805,31 @@ export function MainApp({
             <AlertDialogTitle>Long video</AlertDialogTitle>
             <AlertDialogDescription>
               This video is {formatTime(bgConfirmationDuration ?? 0)} long
-              (minutes:seconds). Background removal can take some time.
+              (minutes:seconds). Background analysis processes every sampled
+              frame and can take several minutes. Fast mode uses the person
+              model at a lower sample rate.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => startBgRemoval(pendingPersonEffectRef.current)}
+              variant="outline"
+              onClick={() =>
+                void startBgRemoval(pendingPersonEffectRef.current.effect, {
+                  fast: true,
+                })
+              }
+            >
+              Use fast mode
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                const pending = pendingPersonEffectRef.current;
+                void startBgRemoval(pending.effect, {
+                  model: pending.model,
+                  tier: pending.tier,
+                });
+              }}
             >
               Continue
             </AlertDialogAction>

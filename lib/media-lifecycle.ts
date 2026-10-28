@@ -72,6 +72,56 @@ export function waitForMediaEvent(
   });
 }
 
+/**
+ * Wait until the element has actually presented a decoded frame for painting.
+ *
+ * `seeked` fires when the seek *operation* completes. On Chromium and Safari
+ * that can happen before the compositor picks up the new frame, so a
+ * `drawImage` issued straight after `seeked` captures the *pre-seek* frame.
+ * Every downstream consumer of that capture is then shifted by one sample.
+ *
+ * `requestVideoFrameCallback` fires on the next presented frame, so awaiting it
+ * guarantees `drawImage` sees the frame we asked for.
+ *
+ * A seek that lands on the frame already on screen presents nothing, so the
+ * callback would never fire. Racing it against a short timeout keeps this a
+ * best-effort improvement rather than a new way to hang.
+ */
+export function waitForVideoFrame(
+  video: HTMLVideoElement,
+  signal?: AbortSignal,
+  timeoutMs = 300,
+): Promise<void> {
+  if (typeof video.requestVideoFrameCallback !== "function") {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason ?? new DOMException("Cancelled", "AbortError"));
+      return;
+    }
+
+    let settled = false;
+    let handle = 0;
+    const finish = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      if (handle) video.cancelVideoFrameCallback(handle);
+      if (error) reject(error);
+      else resolve();
+    };
+    const onAbort = () =>
+      finish(signal?.reason ?? new DOMException("Cancelled", "AbortError"));
+    const timer = setTimeout(() => finish(), timeoutMs);
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+    handle = video.requestVideoFrameCallback(() => finish());
+  });
+}
+
 export async function seekVideo(
   video: HTMLVideoElement,
   time: number,
@@ -91,6 +141,8 @@ export async function seekVideo(
       video.currentTime = time;
     },
   });
+  // The seek completed, but the new frame may not be paintable yet.
+  await waitForVideoFrame(video, signal);
 }
 
 export function releaseVideo(video: HTMLVideoElement): void {

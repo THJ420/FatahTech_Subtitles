@@ -33,9 +33,15 @@ import {
 } from "mediabunny";
 import type { StreamTargetChunk } from "mediabunny";
 import { seekVideo } from "@/lib/media-lifecycle";
+import {
+  createCompositeScratch,
+  drawBackgroundLayer,
+  drawMaskedForeground,
+  maskRectFor,
+  releaseCompositeScratch,
+} from "@/lib/bg-composite";
 import { SubtitleStyle } from "@/components/subtitle-styling";
 import { processTranscriptChunks } from "@/lib/transcript-utils";
-import { estimateFaceFromMask, type FaceBounds } from "@/lib/render-subtitle";
 import type { MaskData } from "@/hooks/useBackgroundRemoval";
 import {
   type PositionTimeline,
@@ -63,6 +69,10 @@ import {
   drawImageWithAutoZoom,
   getAutoZoomCutIndex,
 } from "@/lib/auto-zoom";
+import {
+  loadBackgroundImage,
+  resolveBackgroundFill,
+} from "@/lib/video-background";
 
 interface UseVideoDownloadMediaBunnyProps {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -75,12 +85,6 @@ interface UseVideoDownloadMediaBunnyProps {
   quality?: "low" | "medium" | "high" | "very_high";
   fps?: number;
   bgRemovalReady?: boolean;
-  processFrame?: (
-    imageData: Uint8ClampedArray,
-    width: number,
-    height: number,
-    frameIndex: number,
-  ) => Promise<MaskData>;
   getMaskAtTime?: (time: number, fps?: number) => MaskData | null;
   buildExportTimeline?: (
     videoElement: HTMLVideoElement,
@@ -156,7 +160,6 @@ export function useVideoDownloadMediaBunny({
   quality = "very_high",
   fps = 30,
   bgRemovalReady = false,
-  processFrame: bgProcessFrame,
   getMaskAtTime,
   buildExportTimeline,
   silenceRemovalRanges = [],
@@ -207,14 +210,9 @@ export function useVideoDownloadMediaBunny({
     let cancelled = false;
 
     // Declare reusable buffers outside try so finally can null them for GC
-    let reusableBlurCanvas: HTMLCanvasElement | null = null;
-    let reusableBlurCtx: CanvasRenderingContext2D | null = null;
-    let reusableFgCanvas: OffscreenCanvas | null = null;
-    let reusableFgCtx: OffscreenCanvasRenderingContext2D | null = null;
-    let reusableMaskCanvas: OffscreenCanvas | null = null;
-    let reusableMaskImageData: ImageData | null = null;
-    let lastMaskW = 0;
-    let lastMaskH = 0;
+    // The shared compositor owns the foreground, mask and blur surfaces; the
+    // frame canvas below is the export-specific "save the source frame" buffer.
+    const scratch = createCompositeScratch(true);
     let reusableFrameCanvas: OffscreenCanvas | null = null;
     let reusableFrameCtx: OffscreenCanvasRenderingContext2D | null = null;
     let decodeCanvas: OffscreenCanvas | null = null;
@@ -592,6 +590,27 @@ export function useVideoDownloadMediaBunny({
         }
       }
 
+      // Decode a custom backdrop once; the frame loop only draws it. Export
+      // cannot carry alpha, so `transparent` resolves to the fallback colour
+      // instead of a checkerboard.
+      const customBackground =
+        bgRemovalReady &&
+        subtitleStyle.backgroundRemovalEnabled &&
+        subtitleStyle.backgroundType === "image" &&
+        subtitleStyle.customBackgroundImage
+          ? await loadBackgroundImage(subtitleStyle.customBackgroundImage)
+          : null;
+      signal.throwIfAborted();
+      const background = resolveBackgroundFill(subtitleStyle, {
+        image: customBackground,
+        allowTransparent: false,
+      });
+      if (background.imageMissing) {
+        console.warn(
+          "[MediaBunny export] Background image could not be loaded; using the fallback colour.",
+        );
+      }
+
       const totalFrames = Math.ceil(outputDuration * exportFps);
       setStatus("Rendering video frames...");
 
@@ -779,6 +798,11 @@ export function useVideoDownloadMediaBunny({
 
       // Reusable canvases/buffers are declared before try block for cleanup in finally
 
+      // Frames with no stored mask are exported without compositing. This is
+      // visible in the final status instead of silently falling back to live
+      // inference — export must use the same precomputed masks as preview.
+      let missingMaskFrames = 0;
+
       // Render each frame
       for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
         if (cancelContextRef.current.cancelRequested) {
@@ -921,12 +945,11 @@ export function useVideoDownloadMediaBunny({
           ? (phraseFaceXMap.get(currentChunk.timestamp[0]) ?? 0.5)
           : 0.5;
 
-        const isDynamicMode =
-          subtitleStyle.dynamicEnabled && bgRemovalReady && bgProcessFrame;
+        // Export composites only from the precomputed store. There is no live
+        // inference fallback: preview and export must use the same masks.
+        const isDynamicMode = subtitleStyle.dynamicEnabled && bgRemovalReady;
         const bgActive =
-          bgRemovalReady &&
-          subtitleStyle.backgroundRemovalEnabled &&
-          bgProcessFrame;
+          bgRemovalReady && subtitleStyle.backgroundRemovalEnabled;
         const needsCompositing = isDynamicMode || bgActive;
 
         if (needsCompositing) {
@@ -943,27 +966,12 @@ export function useVideoDownloadMediaBunny({
           }
           reusableFrameCtx!.drawImage(canvas, 0, 0);
 
-          // Use pre-computed masks (5fps cache) when available — avoids costly per-frame AI inference
-          // Falls back to live inference only if cached masks aren't available
-          let mask: MaskData;
-          const cachedMask = getMaskAtTime?.(sourceTime);
-          if (cachedMask) {
-            mask = cachedMask;
-          } else if (bgProcessFrame) {
-            const framePixels = ctx.getImageData(
-              0,
-              0,
-              canvas.width,
-              canvas.height,
-            );
-            mask = await bgProcessFrame(
-              framePixels.data,
-              canvas.width,
-              canvas.height,
-              frameIndex,
-            );
-          } else {
-            // No mask available — skip compositing for this frame
+          // Use the precomputed mask store only. A missing mask means the
+          // clip has no sample at this time (or analysis was cleared); render
+          // the original frame instead of running live inference.
+          const mask = getMaskAtTime?.(sourceTime) ?? null;
+          if (!mask) {
+            missingMaskFrames += 1;
             if (currentChunk) {
               renderSubtitle(
                 ctx,
@@ -987,34 +995,24 @@ export function useVideoDownloadMediaBunny({
             continue;
           }
 
-          // Step 1: Draw background
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (isDynamicMode) {
-            // Dynamic mode: keep original video as background (GPU blit)
-            ctx.drawImage(reusableFrameCanvas!, 0, 0);
-          } else if (subtitleStyle.backgroundType === "blur") {
-            // Reuse blurCanvas across frames — stays as DOM canvas because
-            // ctx.filter is not supported on OffscreenCanvas in all browsers.
-            if (!reusableBlurCanvas) {
-              reusableBlurCanvas = document.createElement("canvas");
-              reusableBlurCanvas.width = canvas.width;
-              reusableBlurCanvas.height = canvas.height;
-              reusableBlurCtx = reusableBlurCanvas.getContext("2d", {
-                alpha: false,
-              });
-            }
-            if (reusableBlurCtx) {
-              // Apply blur on the DOM canvas context (OffscreenCanvas may not
-              // support ctx.filter in all browsers), then blit to main canvas.
-              reusableBlurCtx.filter = "blur(20px)";
-              reusableBlurCtx.drawImage(reusableFrameCanvas!, 0, 0);
-              reusableBlurCtx.filter = "none";
-              ctx.drawImage(reusableBlurCanvas!, 0, 0);
-            }
-          } else {
-            ctx.fillStyle = subtitleStyle.solidBackgroundColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }
+          // Step 1: Draw background. `reusableFrameCanvas` already holds the
+          // cropped frame, so the whole of it is the source rect — the same
+          // rect the foreground uses below, which is what keeps them aligned.
+          const frameRect = {
+            x: 0,
+            y: 0,
+            width: canvas.width,
+            height: canvas.height,
+          };
+          drawBackgroundLayer({
+            ctx,
+            frame: reusableFrameCanvas!,
+            sourceRect: frameRect,
+            destWidth: canvas.width,
+            destHeight: canvas.height,
+            fill: isDynamicMode ? { kind: "original" } : background.fill,
+            scratch,
+          });
 
           // Step 2: Render subtitle behind person
           if (isDynamicMode && currentChunk) {
@@ -1028,116 +1026,45 @@ export function useVideoDownloadMediaBunny({
             );
           }
 
-          // Step 3: Draw masked foreground (reuse canvases across frames)
-          if (!reusableFgCanvas) {
-            reusableFgCanvas = new OffscreenCanvas(canvas.width, canvas.height);
-            reusableFgCtx = reusableFgCanvas.getContext(
-              "2d",
-            ) as OffscreenCanvasRenderingContext2D;
-          }
-          if (!reusableMaskCanvas) {
-            reusableMaskCanvas = new OffscreenCanvas(mask.width, mask.height);
-            lastMaskW = mask.width;
-            lastMaskH = mask.height;
-          }
-          // Clear fg canvas instead of resetting dimensions (avoids context state reset)
-          reusableFgCtx!.clearRect(0, 0, canvas.width, canvas.height);
-          if (reusableFgCtx) {
-            reusableFgCtx.drawImage(reusableFrameCanvas!, 0, 0);
-
-            // Only resize mask canvas when dimensions actually change
-            if (lastMaskW !== mask.width || lastMaskH !== mask.height) {
-              reusableMaskCanvas.width = mask.width;
-              reusableMaskCanvas.height = mask.height;
-              lastMaskW = mask.width;
-              lastMaskH = mask.height;
-            }
-            const maskCtx = reusableMaskCanvas.getContext("2d");
-            if (maskCtx) {
-              // Reuse ImageData if mask dimensions haven't changed
-              if (
-                !reusableMaskImageData ||
-                reusableMaskImageData.width !== mask.width ||
-                reusableMaskImageData.height !== mask.height
-              ) {
-                reusableMaskImageData = maskCtx.createImageData(
-                  mask.width,
-                  mask.height,
-                );
-              }
-              const pixels = reusableMaskImageData.data;
-              for (let i = 0; i < mask.data.length; i++) {
-                const idx = i * 4;
-                pixels[idx] = 255;
-                pixels[idx + 1] = 255;
-                pixels[idx + 2] = 255;
-                pixels[idx + 3] = mask.data[i];
-              }
-              maskCtx.putImageData(reusableMaskImageData, 0, 0);
-
-              reusableFgCtx.globalCompositeOperation = "destination-in";
-              if (needsCrop && cachedMask) {
-                // Cached masks cover the full video frame — crop to match
-                const msx = (frameCropX / srcW) * mask.width;
-                const msy = (cropY / srcH) * mask.height;
-                const msw = (cropW / srcW) * mask.width;
-                const msh = (cropH / srcH) * mask.height;
-                reusableFgCtx.drawImage(
-                  reusableMaskCanvas,
-                  msx,
-                  msy,
-                  msw,
-                  msh,
-                  0,
-                  0,
-                  canvas.width,
-                  canvas.height,
-                );
-              } else {
-                reusableFgCtx.drawImage(
-                  reusableMaskCanvas,
-                  0,
-                  0,
-                  canvas.width,
-                  canvas.height,
-                );
-              }
-              reusableFgCtx.globalCompositeOperation = "source-over";
-            }
-
-            ctx.drawImage(reusableFgCanvas, 0, 0);
-          }
+          // Step 3: Draw masked foreground. The mask still covers the whole
+          // video frame, so its crop comes from the video-space export rect,
+          // not from `frameRect`.
+          drawMaskedForeground({
+            ctx,
+            frame: reusableFrameCanvas!,
+            sourceRect: frameRect,
+            destWidth: canvas.width,
+            destHeight: canvas.height,
+            mask: mask.data,
+            maskWidth: mask.width,
+            maskHeight: mask.height,
+            // The stored mask covers the whole video frame; the export frame is
+            // already cropped, so the mask crop comes from the video-space
+            // export rect.
+            maskRect: maskRectFor(
+              { width: srcW, height: srcH },
+              { x: frameCropX, y: cropY, width: cropW, height: cropH },
+              mask.width,
+              mask.height,
+            ),
+            scratch,
+          });
 
           // Step 4: Render front text (dynamic) or on-top text (non-dynamic)
           if (isDynamicMode && currentChunk) {
-            let faceBounds: FaceBounds | null;
-            if (needsCrop && cachedMask) {
-              // Cached mask covers full frame — compute chin in full-frame coords then translate
-              const fullFace = estimateFaceFromMask(
-                mask.data,
-                mask.width,
-                mask.height,
-                srcW,
-                srcH,
-              );
-              faceBounds = fullFace
-                ? { chinY: (fullFace.chinY - cropY) * (canvas.height / cropH) }
+            // The chin line is cached when the mask is stored, as a fraction of
+            // the full video frame. Translate it through the export crop rather
+            // than re-scanning every mask pixel per frame.
+            const chinY =
+              mask.meta?.chinY != null
+                ? (mask.meta.chinY * srcH - cropY) * (canvas.height / cropH)
                 : null;
-            } else {
-              faceBounds = estimateFaceFromMask(
-                mask.data,
-                mask.width,
-                mask.height,
-                canvas.width,
-                canvas.height,
-              );
-            }
             renderDynamicFrontInExport(
               ctx,
               currentChunk,
               subtitleStyle,
               canvas,
-              faceBounds,
+              chinY != null ? { chinY } : null,
               time,
             );
           } else if (currentChunk) {
@@ -1190,6 +1117,12 @@ export function useVideoDownloadMediaBunny({
           }
           throw error;
         }
+      }
+
+      if (missingMaskFrames > 0) {
+        console.warn(
+          `[MediaBunny export] ${missingMaskFrames} frame(s) had no stored mask and were exported without background removal.`,
+        );
       }
 
       // Clean up iterator
@@ -1247,7 +1180,11 @@ export function useVideoDownloadMediaBunny({
         // Keep it alive long enough for the download to acquire the data.
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
 
-        setStatus("Export complete!");
+        setStatus(
+          missingMaskFrames > 0
+            ? `Export complete — ${missingMaskFrames} frame${missingMaskFrames === 1 ? "" : "s"} had no mask.`
+            : "Export complete!",
+        );
         setProgress(100);
       }
     } catch (error) {
@@ -1277,27 +1214,15 @@ export function useVideoDownloadMediaBunny({
       }
       await audioPumpPromise?.catch(() => {});
       // Explicitly release backing stores; null references alone defer GPU memory reclamation.
-      for (const surface of [
-        outputCanvas,
-        reusableBlurCanvas,
-        reusableFgCanvas,
-        reusableMaskCanvas,
-        reusableFrameCanvas,
-        decodeCanvas,
-      ]) {
+      for (const surface of [outputCanvas, reusableFrameCanvas, decodeCanvas]) {
         if (surface) {
           surface.width = 0;
           surface.height = 0;
         }
       }
+      releaseCompositeScratch(scratch);
       encodedBuffer.clear();
       // Release all reusable canvases and buffers to free memory
-      reusableBlurCanvas = null;
-      reusableBlurCtx = null;
-      reusableFgCanvas = null;
-      reusableFgCtx = null;
-      reusableMaskCanvas = null;
-      reusableMaskImageData = null;
       reusableFrameCanvas = null;
       reusableFrameCtx = null;
       decodeCanvas = null;
@@ -1357,7 +1282,6 @@ export function useVideoDownloadMediaBunny({
     quality,
     fps,
     bgRemovalReady,
-    bgProcessFrame,
     getMaskAtTime,
     buildExportTimeline,
     silenceRemovalRanges,
