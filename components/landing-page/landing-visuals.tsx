@@ -146,7 +146,7 @@ export function BrowserChrome() {
         <i />
       </span>
       <span className={styles.browserAddress}>
-        <LockKeyhole size={12} /> fatahtech.com
+        <LockKeyhole size={12} /> subtitle.fatahtech.com
       </span>
     </div>
   );

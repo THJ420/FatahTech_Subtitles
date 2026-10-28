@@ -5,7 +5,7 @@ AI-powered subtitle generator that processes video and audio in your browser. No
 - Transcribes video audio using [Whisper.js](https://huggingface.co/docs/transformers.js) (WebGPU/WASM)
 - Exports MP4 with subtitles baked in using [Mediabunny](https://mediabunny.dev/)
 - Add subtitles manually at any time range, with the same styling as transcribed words
-- Optional `fatahtech.com` watermark, toggleable in the editor
+- Optional `subtitle.fatahtech.com` watermark, toggleable in the editor
 - Caches downloaded models in the browser for reuse. Model files and other app assets require network access when they are not cached.
 
 Repository: <https://github.com/THJ420/FatahTech_Subtitles.git>
@@ -90,7 +90,8 @@ safe is what produces the original error.
 - **5 model sizes** — Tiny, Base, Small, Large-v3-Turbo, and Medium, auto-gated to what your hardware can run
 - **25+ Google Fonts** — Bangers, Bebas Neue, Permanent Marker, Montserrat, and more
 - **Manual subtitles** — add your own subtitle chunks at any time range; word timings are generated so all styles apply
-- **Custom watermark** — optional `fatahtech.com` mark, toggleable in the editor, burned into exports when on
+- **Custom watermark** — optional `subtitle.fatahtech.com` mark, toggleable in the editor, burned into exports when on
+- **Color & Light grading** — exposure, contrast, gamma, saturation, vibrance, temperature, tint, highlights and shadows, with footage-analyzed presets and saved looks
 - **Per-word styling** — override font, size, color, and effects on individual words
 - **Caption placement** — drag and resize captions, with local or global placement
 - **Subtitle timing** — edit word or phrase start/end times, move subtitles on the timeline, and use Undo or Reset
@@ -156,7 +157,7 @@ never render as unstyled plain text.
 
 ### Watermark
 
-The watermark reads **`fatahtech.com`** and is drawn from a single
+The watermark reads **`subtitle.fatahtech.com`** and is drawn from a single
 `WATERMARK_TEXT` constant in `lib/export-renderer.ts`, so preview and export can
 never drift apart.
 
@@ -169,7 +170,7 @@ into three render paths:
 | Live preview DOM overlay        | Shown when compositing is inactive |
 | Export frame context (MP4/WebM) | Burned into the encoded file       |
 
-Toggle it with **Show Watermark (fatahtech.com)** in the **Video** tab, or from
+Toggle it with **Show Watermark (subtitle.fatahtech.com)** in the **Video** tab, or from
 the watermark switch in the **Style** tab. Turning it off omits the mark from
 the preview _and_ the exported video — it is not a preview-only setting.
 
@@ -280,6 +281,14 @@ Video Frames → BG Worker (BiRefNet / MODNet) → MaskStore → Compositor → 
 
 The preview and export renderers share font resolution logic via `lib/font-config.ts`, and both draw the watermark from the same `WATERMARK_TEXT` constant, so preview and export stay visually identical.
 
+### Color & Light
+
+The Video tab exposes nine grading controls: exposure, contrast, gamma, saturation, vibrance, temperature, tint, highlights, and shadows. Grades are applied in linear light by a WebGL2 shader in `lib/color-grade-renderer.ts`; `lib/color-grade.ts` holds the same math as a pure CPU function so presets, swatches, and tests share one definition. Browsers without WebGL2 fall back to a Canvas 2D filter approximation for exposure, contrast, saturation, and temperature, and the UI disables the controls that cannot be represented.
+
+Preview and export grade the composed footage exactly once, before any background or text, so subtitles and the watermark are never tinted. `solid` and `image` backgrounds are not graded; the blurred backdrop is, because it is derived from the footage. Stacked portrait composes both tiles first, then grades the result.
+
+On import, `useFootageColorAnalysis` decodes five sampled frames with mediabunny and measures luminance, contrast, saturation, warmth, and tint. Those stats tune four looks — Vibrant Product Pop, Cinematic Teal & Orange, Warm Cinematic, and Clean Studio — shown as cards. The default stays Neutral. Custom looks are saved in `localStorage` under `fatahtech-subtitles:color-grade-presets:v1`.
+
 ### Video Export
 
 Mediabunny renders each frame to an offscreen canvas, composites subtitles (and optionally masks), then encodes to MP4. Mobile exports use a maximum 1280-pixel long edge to reduce memory and encoding load.
@@ -318,12 +327,18 @@ components/
 hooks/
   useTranscription.ts         # Whisper via Web Worker
   useBackgroundRemoval.ts     # BG removal via Web Worker
+  useFootageColorAnalysis.ts  # Sampled-frame color stats + generated looks
+  useCustomColorPresets.ts    # Saved color looks (localStorage)
   useFaceTracking.ts          # MediaPipe face detection
   useVideoDownloadMediaBunny.ts # Video export
   useCameraRecording.ts       # Camera input
   useSubtitleTiming.ts        # Timing transactions, Undo, and Reset
 
 lib/
+  color-grade.ts              # Grade model, presets, linear-light CPU math
+  color-grade-renderer.ts     # WebGL2 grade pass + Canvas 2D fallback
+  color-grade-analysis.ts     # Footage stats + preset synthesis
+  color-grade-presets.ts      # Saved-look parsing and storage
   font-config.ts              # Shared font map (CSS vars → canvas names)
   render-subtitle.ts          # Canvas subtitle rendering (preview)
   export-renderer.ts          # Canvas subtitle rendering + watermark (export)

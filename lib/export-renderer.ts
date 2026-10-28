@@ -57,7 +57,7 @@ export const WATERMARK_FONT_FAMILY =
   'Arial, Helvetica, "Segoe UI", Roboto, sans-serif';
 
 /** Watermark burned into previews and exported videos when `showWatermark` is on. */
-export const WATERMARK_TEXT = "fatahtech.com";
+export const WATERMARK_TEXT = "subtitle.fatahtech.com";
 
 export function getBrandingWatermarkMetrics(width: number, height: number) {
   // Limit the mark by both dimensions so portrait video does not enlarge it.

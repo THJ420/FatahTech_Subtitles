@@ -19,16 +19,16 @@ export function LandingCTA() {
               No sign-up · No API keys · 100% free
             </span>
             <h2>
-              Ready to transcribe <span>without limits?</span>
+              Make your free <span>SRT and subtitled video</span> now
             </h2>
             <p>
-              Experience enterprise-grade AI subtitling directly on your
-              computer hardware. Your video stays private, your speed stays
-              instant.
+              Open the editor, upload a video, and let the AI subtitle generator
+              do the first pass. Everything runs on your device, so your footage
+              stays private.
             </p>
             <div className={styles.ctaActions}>
               <a href="#dropzone" className={styles.ctaPrimary}>
-                <Upload size={18} /> Start subtitling now{" "}
+                <Upload size={18} /> Start subtitling free{" "}
                 <ArrowRight size={18} />
               </a>
               <a

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 /**
- * Social share card for fatahtech.com.
+ * Social share card for subtitle.fatahtech.com.
  *
  * Wired up through the `opengraph-image` and `twitter-image` file
  * conventions in `app/`, so the URL is generated and served by this
@@ -68,7 +68,7 @@ export function createSocialImage(): ImageResponse {
               letterSpacing: 1,
             }}
           >
-            fatahtech.com
+            subtitle.fatahtech.com
           </div>
         </div>
       </div>

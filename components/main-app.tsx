@@ -35,7 +35,6 @@ import {
 } from "@/components/subtitle-styling";
 import { WordStylePopover } from "@/components/word-style-popover";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   restoreSubtitleTiming,
@@ -69,6 +68,8 @@ import { describeBgRemovalError, isAbortError } from "@/lib/bg-errors";
 import { DEFAULT_QUALITY_TIER, type BgQualityTier } from "@/lib/bg-quality";
 import { DEFAULT_BLUR_INTENSITY } from "@/lib/video-background";
 import { useFaceTracking } from "@/hooks/useFaceTracking";
+import { useFootageColorAnalysis } from "@/hooks/useFootageColorAnalysis";
+import { NEUTRAL_COLOR_GRADE } from "@/lib/color-grade";
 import { type LanguageCode } from "@/components/language-selector";
 import { LanguageSelectionModal } from "@/components/language-selection-modal";
 import {
@@ -137,6 +138,7 @@ const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
   backgroundType: "solid",
   solidBackgroundColor: "#000000",
   blurIntensity: DEFAULT_BLUR_INTENSITY,
+  colorGrade: { ...NEUTRAL_COLOR_GRADE },
   dynamicEnabled: false,
   dynamicFontSize: 80,
   dynamicYPosition: 35,
@@ -184,6 +186,7 @@ export function MainApp({
   const [modelSize, setModelSize] = useState<ModelSize>("base");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
+  const footageColor = useFootageColorAnalysis(uploadedFile, videoDuration);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [editorTab, setEditorTab] = useState<"style" | "subtitles" | "video">(
     "style",
@@ -1315,29 +1318,6 @@ export function MainApp({
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Watermark toggle — live preview and exported video */}
-                    <div className={styles.settingGroup}>
-                      <div className="flex items-center justify-between gap-3">
-                        <label htmlFor="show-watermark">
-                          Show Watermark (fatahtech.com)
-                        </label>
-                        <Switch
-                          id="show-watermark"
-                          checked={subtitleStyle.showWatermark !== false}
-                          onCheckedChange={(checked) =>
-                            setSubtitleStyle((previous) => ({
-                              ...previous,
-                              showWatermark: checked,
-                            }))
-                          }
-                        />
-                      </div>
-                      <p>
-                        {subtitleStyle.showWatermark !== false
-                          ? "fatahtech.com is drawn in the bottom corner of the preview and the exported video."
-                          : "The watermark is omitted from the preview and the exported video."}
-                      </p>
-                    </div>
                     {ratio === "9:16" ? (
                       <Button
                         variant={zoomPortrait ? "default" : "outline"}
@@ -1483,6 +1463,25 @@ export function MainApp({
                       restoredFromCache={bgRestoredFromCache}
                       onReanalyze={handleReanalyzeBg}
                       disabled={isDownloadProcessing || stackedPortrait}
+                      showWatermark={subtitleStyle.showWatermark !== false}
+                      onShowWatermarkChange={(showWatermark) =>
+                        setSubtitleStyle((previous) => ({
+                          ...previous,
+                          showWatermark,
+                        }))
+                      }
+                      colorGrade={
+                        subtitleStyle.colorGrade ?? NEUTRAL_COLOR_GRADE
+                      }
+                      onColorGradeChange={(colorGrade) =>
+                        setSubtitleStyle((previous) => ({
+                          ...previous,
+                          colorGrade,
+                        }))
+                      }
+                      colorPresets={footageColor.presets}
+                      colorAnalysisStatus={footageColor.status}
+                      colorGradeDisabled={isDownloadProcessing}
                       onRemoveBackground={() =>
                         handlePersonEffect("background")
                       }

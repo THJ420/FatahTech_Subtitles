@@ -1,6 +1,24 @@
-# Allow all crawlers
+# Allow all crawlers, including AI search engines.
 User-agent: *
 Allow: /
 
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 # Sitemap location
-Sitemap: https://fatahtech.com/sitemap.xml
+Sitemap: https://subtitle.fatahtech.com/sitemap.xml

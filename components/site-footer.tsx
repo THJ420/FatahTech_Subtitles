@@ -87,7 +87,7 @@ function StackLinks() {
         MediaBunny
       </a>
       <span>·</span>
-      <span>fatahtech.com</span>
+      <span>subtitle.fatahtech.com</span>
     </div>
   );
 }

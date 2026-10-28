@@ -38,8 +38,14 @@ import {
   drawBackgroundLayer,
   drawMaskedForeground,
   maskRectFor,
+  prepareCompositorFrame,
   releaseCompositeScratch,
 } from "@/lib/bg-composite";
+import { isNeutralColorGrade, sanitizeColorGrade } from "@/lib/color-grade";
+import {
+  createColorGradeRenderer,
+  type ColorGradeRenderer,
+} from "@/lib/color-grade-renderer";
 import { SubtitleStyle } from "@/components/subtitle-styling";
 import { processTranscriptChunks } from "@/lib/transcript-utils";
 import type { MaskData } from "@/hooks/useBackgroundRemoval";
@@ -227,6 +233,7 @@ export function useVideoDownloadMediaBunny({
     let abortInput: (() => void) | undefined;
     const encodedBuffer = new ExportBuffer();
     let outputCanvas: HTMLCanvasElement | null = null;
+    let gradeRenderer: ColorGradeRenderer | null = null;
 
     try {
       // Create canvas matching video dimensions, capped on mobile to prevent
@@ -611,6 +618,11 @@ export function useVideoDownloadMediaBunny({
         );
       }
 
+      // Snapshot the grade for the whole export so mid-export slider edits
+      // cannot change already-encoded frames.
+      const grade = sanitizeColorGrade(subtitleStyle.colorGrade);
+      const gradingActive = !isNeutralColorGrade(grade);
+
       const totalFrames = Math.ceil(outputDuration * exportFps);
       setStatus("Rendering video frames...");
 
@@ -936,6 +948,28 @@ export function useVideoDownloadMediaBunny({
           drewSourceFrame = true;
         }
 
+        // Grade the composed source frame once, before any background or text.
+        // The main canvas already holds the crop, stacked tiles and auto-zoom,
+        // so preview and export grade identical pixels.
+        const preparedFrame = gradingActive
+          ? prepareCompositorFrame(
+              (gradeRenderer ??= createColorGradeRenderer()),
+              {
+                frame: canvas,
+                sourceRect: {
+                  x: 0,
+                  y: 0,
+                  width: canvas.width,
+                  height: canvas.height,
+                },
+                intrinsic: { width: canvas.width, height: canvas.height },
+                destWidth: canvas.width,
+                destHeight: canvas.height,
+                grade,
+              },
+            )
+          : null;
+
         // Find current subtitle chunk (binary search — O(log n) vs O(n) per frame)
         const currentChunk = findChunkAtTime(enabledChunks, time);
 
@@ -953,18 +987,37 @@ export function useVideoDownloadMediaBunny({
         const needsCompositing = isDynamicMode || bgActive;
 
         if (needsCompositing) {
-          // Compositing at full resolution (bg removal or dynamic mode)
-          // Save current frame to offscreen canvas via GPU blit (fast, no ImageData needed for restore)
-          if (!reusableFrameCanvas) {
-            reusableFrameCanvas = new OffscreenCanvas(
-              canvas.width,
-              canvas.height,
-            );
-            reusableFrameCtx = reusableFrameCanvas.getContext("2d", {
-              alpha: false,
-            }) as OffscreenCanvasRenderingContext2D;
+          // Compositing needs a source copy. A graded frame is already a
+          // destination-sized copy; otherwise snapshot the main canvas.
+          let frameSource: CanvasImageSource;
+          let frameRect: {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+          };
+          if (preparedFrame) {
+            frameSource = preparedFrame.frame;
+            frameRect = preparedFrame.sourceRect;
+          } else {
+            if (!reusableFrameCanvas) {
+              reusableFrameCanvas = new OffscreenCanvas(
+                canvas.width,
+                canvas.height,
+              );
+              reusableFrameCtx = reusableFrameCanvas.getContext("2d", {
+                alpha: false,
+              }) as OffscreenCanvasRenderingContext2D;
+            }
+            reusableFrameCtx!.drawImage(canvas, 0, 0);
+            frameSource = reusableFrameCanvas!;
+            frameRect = {
+              x: 0,
+              y: 0,
+              width: canvas.width,
+              height: canvas.height,
+            };
           }
-          reusableFrameCtx!.drawImage(canvas, 0, 0);
 
           // Use the precomputed mask store only. A missing mask means the
           // clip has no sample at this time (or analysis was cleared); render
@@ -972,6 +1025,7 @@ export function useVideoDownloadMediaBunny({
           const mask = getMaskAtTime?.(sourceTime) ?? null;
           if (!mask) {
             missingMaskFrames += 1;
+            if (preparedFrame) ctx.drawImage(preparedFrame.frame, 0, 0);
             if (currentChunk) {
               renderSubtitle(
                 ctx,
@@ -995,18 +1049,12 @@ export function useVideoDownloadMediaBunny({
             continue;
           }
 
-          // Step 1: Draw background. `reusableFrameCanvas` already holds the
-          // cropped frame, so the whole of it is the source rect — the same
-          // rect the foreground uses below, which is what keeps them aligned.
-          const frameRect = {
-            x: 0,
-            y: 0,
-            width: canvas.width,
-            height: canvas.height,
-          };
+          // Step 1: Draw background. The frame is the whole cropped frame, so
+          // the background and foreground share one source rect — which is
+          // what keeps them aligned.
           drawBackgroundLayer({
             ctx,
-            frame: reusableFrameCanvas!,
+            frame: frameSource,
             sourceRect: frameRect,
             destWidth: canvas.width,
             destHeight: canvas.height,
@@ -1031,7 +1079,7 @@ export function useVideoDownloadMediaBunny({
           // not from `frameRect`.
           drawMaskedForeground({
             ctx,
-            frame: reusableFrameCanvas!,
+            frame: frameSource,
             sourceRect: frameRect,
             destWidth: canvas.width,
             destHeight: canvas.height,
@@ -1079,7 +1127,9 @@ export function useVideoDownloadMediaBunny({
             );
           }
         } else {
-          // Normal rendering (no compositing)
+          // Normal rendering (no compositing). The source frame is already on
+          // the main canvas; put the graded copy back before drawing text.
+          if (preparedFrame) ctx.drawImage(preparedFrame.frame, 0, 0);
           if (currentChunk) {
             renderSubtitle(
               ctx,
@@ -1221,6 +1271,8 @@ export function useVideoDownloadMediaBunny({
         }
       }
       releaseCompositeScratch(scratch);
+      gradeRenderer?.dispose();
+      gradeRenderer = null;
       encodedBuffer.clear();
       // Release all reusable canvases and buffers to free memory
       reusableFrameCanvas = null;

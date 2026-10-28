@@ -58,6 +58,12 @@ const ROWS: { label: string; local: Cell; cloud: Cell; cli: Cell }[] = [
     cloud: { kind: "text", value: "Varies" },
     cli: { kind: "no", value: "Text output only" },
   },
+  {
+    label: "Color grading and footage-aware presets",
+    local: { kind: "yes", value: "Built in" },
+    cloud: { kind: "text", value: "Extra tools" },
+    cli: { kind: "text", value: "Manual filters" },
+  },
 ];
 
 function CellValue({ cell }: { cell: Cell }) {
@@ -82,7 +88,7 @@ export function LandingCapabilities() {
           <div className={styles.capabilitiesHead}>
             <div>
               <span className={styles.eyebrow}>Comparison</span>
-              <h2>FatahTech vs Traditional Subtitle Tools</h2>
+              <h2>Free AI subtitle generator vs traditional subtitle tools</h2>
             </div>
             <p>
               A capability comparison against the usual alternatives. No speed

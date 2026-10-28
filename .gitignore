@@ -41,6 +41,7 @@ yarn-error.log*
 _qa_*.jpg
 *.log
 .dev-server.pid
+/.workbuddy-ai
 
 # env files (can opt-in for committing if needed)
 .env*

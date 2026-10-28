@@ -52,8 +52,18 @@ import {
   drawBackgroundLayer,
   drawMaskedForeground,
   maskRectFor,
+  prepareCompositorFrame,
   releaseCompositeScratch,
 } from "@/lib/bg-composite";
+import {
+  createColorGradeRenderer,
+  type ColorGradeRenderer,
+} from "@/lib/color-grade-renderer";
+import {
+  isNeutralColorGrade,
+  sanitizeColorGrade,
+  type ColorGrade,
+} from "@/lib/color-grade";
 import {
   loadBackgroundImage,
   resolveBackgroundFill,
@@ -243,12 +253,42 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
       }
     }, [currentTime, duration]);
 
+    // Color grading runs on the footage before backgrounds and text. A
+    // persistent renderer is used so the compositing effect can restart on
+    // every slider tick without recreating the WebGL context.
+    const grade = useMemo(
+      () => sanitizeColorGrade(subtitleStyle.colorGrade),
+      [subtitleStyle.colorGrade],
+    );
+    const gradingActive = !isNeutralColorGrade(grade);
+    const gradeRef = useRef(grade);
+    useEffect(() => {
+      gradeRef.current = grade;
+    }, [grade]);
+    const gradeRendererRef = useRef<ColorGradeRenderer | null>(null);
+    const ensureGradeRenderer = useCallback((): ColorGradeRenderer => {
+      if (!gradeRendererRef.current) {
+        gradeRendererRef.current = createColorGradeRenderer();
+      }
+      return gradeRendererRef.current;
+    }, []);
+    useEffect(
+      () => () => {
+        gradeRendererRef.current?.dispose();
+        gradeRendererRef.current = null;
+      },
+      [],
+    );
+
     // Whether compositing mode is active
     const isDynamicMode =
       subtitleStyle.dynamicEnabled && bgRemovalReady && getMaskAtTime;
     const isBgRemovalMode =
       bgRemovalReady && subtitleStyle.backgroundRemovalEnabled && getMaskAtTime;
-    const compositingActive = isDynamicMode || isBgRemovalMode;
+    // Stacked portrait composes two tiles in its own canvas loop; grading must
+    // stay there instead of replacing it with a single center crop.
+    const compositingActive =
+      isDynamicMode || isBgRemovalMode || (gradingActive && !stackedPortrait);
     const needsFaceTrackCanvas =
       (stackedPortrait || (cropTrackingEnabled && isFaceTrackingActive)) &&
       !compositingActive &&
@@ -650,7 +690,7 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
         // quantisation, and rounding is the minimum-error choice. The old
         // +0.5-sample lookahead pushed the matte ahead of the frame it was
         // composited onto, which is what produced edge trailing in motion.
-        const mask = getMaskAtTime!(time);
+        const mask = getMaskAtTime?.(time) ?? null;
 
         // Compute center-crop region when canvas AR differs from video AR
         // (e.g. landscape video shown in a 9:16 container with object-cover)
@@ -681,21 +721,51 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
           }
         }
 
+        const isDynamic = subtitleStyle.dynamicEnabled;
+        const sourceRect = { x: sx, y: sy, width: sw, height: sh };
+
+        // Grade the footage once, before any background or text is drawn.
+        // Neutral grades pass the original element through untouched.
+        const prepared = gradingActive
+          ? prepareCompositorFrame(ensureGradeRenderer(), {
+              frame: videoEl,
+              sourceRect,
+              intrinsic: { width: vw, height: vh },
+              destWidth: w,
+              destHeight: h,
+              grade,
+            })
+          : {
+              frame: videoEl,
+              sourceRect,
+              intrinsic: { width: vw, height: vh },
+              graded: false,
+            };
+
         if (!mask) {
-          ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, w, h);
+          ctx.drawImage(
+            prepared.frame,
+            prepared.sourceRect.x,
+            prepared.sourceRect.y,
+            prepared.sourceRect.width,
+            prepared.sourceRect.height,
+            0,
+            0,
+            w,
+            h,
+          );
+          // The DOM watermark is hidden while the compositing canvas is up.
+          drawBrandingWatermark(ctx, w, h, subtitleStyle.showWatermark);
           animFrameRef.current = requestAnimationFrame(render);
           return;
         }
-
-        const isDynamic = subtitleStyle.dynamicEnabled;
-        const sourceRect = { x: sx, y: sy, width: sw, height: sh };
 
         // Step 1: background layer. Every branch is framed from `sourceRect`,
         // so the backdrop can never disagree with the foreground crop.
         drawBackgroundLayer({
           ctx,
-          frame: videoEl,
-          sourceRect,
+          frame: prepared.frame,
+          sourceRect: prepared.sourceRect,
           destWidth: w,
           destHeight: h,
           fill: isDynamic ? { kind: "original" } : backgroundFill,
@@ -711,16 +781,16 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
         // the same `sourceRect`, so the silhouette always aligns with the frame.
         drawMaskedForeground({
           ctx,
-          frame: videoEl,
-          sourceRect,
+          frame: prepared.frame,
+          sourceRect: prepared.sourceRect,
           destWidth: w,
           destHeight: h,
           mask: mask.data,
           maskWidth: mask.width,
           maskHeight: mask.height,
           maskRect: maskRectFor(
-            { width: vw, height: vh },
-            sourceRect,
+            prepared.intrinsic,
+            prepared.sourceRect,
             mask.width,
             mask.height,
           ),
@@ -747,7 +817,7 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
           );
         }
 
-        // Step 5: Watermark (fatahtech.com)
+        // Step 5: Watermark (subtitle.fatahtech.com)
         drawBrandingWatermark(ctx, w, h, subtitleStyle.showWatermark);
 
         animFrameRef.current = requestAnimationFrame(render);
@@ -773,6 +843,9 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
       cropTrackingEnabled,
       getCenterX,
       videoSrc,
+      grade,
+      gradingActive,
+      ensureGradeRenderer,
     ]);
 
     // Non-compositing face tracking canvas loop:
@@ -794,8 +867,14 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      // Stacked portrait composes two tiles here (compositing is disabled for
+      // that layout). Grade the composed tiles, matching the export order.
+      let composedCanvas: HTMLCanvasElement | null = null;
+      let composedCtx: CanvasRenderingContext2D | null = null;
+
       let lastRenderedTime = -1;
       let lastFaces: TrackedFace[] | undefined;
+      let lastGrade: ColorGrade | null = null;
 
       const render = () => {
         const displayWidth = canvas.clientWidth;
@@ -814,17 +893,22 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
         const sizeChanged =
           canvas.width !== displayWidth || canvas.height !== displayHeight;
         const faces = getFaces?.();
+        // A grade change must repaint even while the video is paused.
+        const currentGrade = gradingActive ? gradeRef.current : null;
+        const gradeChanged = currentGrade !== lastGrade;
         if (
           (!stackedPortrait || faces === lastFaces) &&
           videoEl.paused &&
           time === lastRenderedTime &&
-          !sizeChanged
+          !sizeChanged &&
+          !gradeChanged
         ) {
           faceTrackAnimFrameRef.current = requestAnimationFrame(render);
           return;
         }
         lastRenderedTime = time;
         lastFaces = faces;
+        lastGrade = currentGrade;
 
         if (sizeChanged) {
           canvas.width = displayWidth;
@@ -852,20 +936,49 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
           sy = Math.round((vh - sh) / 2);
         }
 
-        if (stackedPortrait) {
-          drawPortraitLayout(
-            ctx,
-            videoEl,
-            vw,
-            vh,
-            w,
-            h,
-            faces ?? [],
-            portraitSwapped,
-            portraitZoom,
-          );
+        const drawSource = (target: CanvasRenderingContext2D) => {
+          if (stackedPortrait) {
+            drawPortraitLayout(
+              target,
+              videoEl,
+              vw,
+              vh,
+              w,
+              h,
+              faces ?? [],
+              portraitSwapped,
+              portraitZoom,
+            );
+          } else {
+            target.drawImage(videoEl, sx, sy, sw, sh, 0, 0, w, h);
+          }
+        };
+
+        if (gradingActive) {
+          if (!composedCanvas) {
+            composedCanvas = document.createElement("canvas");
+            composedCtx = composedCanvas.getContext("2d", { alpha: false });
+          }
+          if (composedCanvas.width !== w || composedCanvas.height !== h) {
+            composedCanvas.width = w;
+            composedCanvas.height = h;
+          }
+          if (composedCtx) {
+            composedCtx.clearRect(0, 0, w, h);
+            drawSource(composedCtx);
+            const prepared = prepareCompositorFrame(ensureGradeRenderer(), {
+              frame: composedCanvas,
+              sourceRect: { x: 0, y: 0, width: w, height: h },
+              intrinsic: { width: w, height: h },
+              destWidth: w,
+              destHeight: h,
+              grade: gradeRef.current,
+            });
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(prepared.frame, 0, 0);
+          }
         } else {
-          ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, w, h);
+          drawSource(ctx);
         }
         faceTrackAnimFrameRef.current = requestAnimationFrame(render);
       };
@@ -876,6 +989,12 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
         if (faceTrackAnimFrameRef.current) {
           cancelAnimationFrame(faceTrackAnimFrameRef.current);
           faceTrackAnimFrameRef.current = 0;
+        }
+        if (composedCanvas) {
+          composedCanvas.width = 0;
+          composedCanvas.height = 0;
+          composedCanvas = null;
+          composedCtx = null;
         }
       };
     }, [
@@ -888,6 +1007,8 @@ const VideoUploadComponent = forwardRef<HTMLVideoElement, VideoUploadProps>(
       portraitSwapped,
       portraitZoom,
       getFaces,
+      gradingActive,
+      ensureGradeRenderer,
     ]);
 
     const watermark = getBrandingWatermarkMetrics(

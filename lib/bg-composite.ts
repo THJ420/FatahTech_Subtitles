@@ -19,8 +19,13 @@
  *
  * Steps 2 and 4 stay with the caller because only the dynamic-depth mode needs
  * them, and they depend on subtitle state this module should not know about.
+ *
+ * Color grading is applied to the footage *before* this order, through
+ * `prepareCompositorFrame`, so every layer below sees the same graded frame.
  */
 
+import { isNeutralColorGrade, type ColorGrade } from "@/lib/color-grade";
+import type { ColorGradeRenderer } from "@/lib/color-grade-renderer";
 import { drawBlurredBackdrop, BACKGROUND_BLUR_PX } from "@/lib/blur-backdrop";
 
 export interface Rect {
@@ -149,11 +154,14 @@ function ensureForeground(
 ): Any2DContext | null {
   if (!scratch.foreground) {
     scratch.foreground = createCanvas(width, height, scratch.useOffscreen);
-    scratch.foregroundCtx = scratch.foreground.getContext("2d") as
-      | Any2DContext
-      | null;
+    scratch.foregroundCtx = scratch.foreground.getContext(
+      "2d",
+    ) as Any2DContext | null;
   }
-  if (scratch.foreground.width !== width || scratch.foreground.height !== height) {
+  if (
+    scratch.foreground.width !== width ||
+    scratch.foreground.height !== height
+  ) {
     scratch.foreground.width = width;
     scratch.foreground.height = height;
   }
@@ -402,4 +410,58 @@ export function drawMaskedForeground({
 
   ctx.drawImage(scratch.foreground, 0, 0);
   return true;
+}
+
+export interface CompositorFrameInput {
+  frame: CanvasImageSource;
+  sourceRect: Rect;
+  intrinsic: IntrinsicSize;
+  destWidth: number;
+  destHeight: number;
+  grade?: ColorGrade | null;
+}
+
+export interface PreparedCompositorFrame {
+  frame: CanvasImageSource;
+  sourceRect: Rect;
+  intrinsic: IntrinsicSize;
+  /** True when `frame` is the graded canvas rather than the original source. */
+  graded: boolean;
+}
+
+/**
+ * Grade the footage once, before any background or text is drawn.
+ *
+ * Neutral grades pass through untouched. A graded frame is returned at the
+ * destination size, so callers use the full destination rect as its
+ * `sourceRect`; `maskRectFor` then resolves to the full mask for that frame.
+ */
+export function prepareCompositorFrame(
+  renderer: ColorGradeRenderer,
+  {
+    frame,
+    sourceRect,
+    intrinsic,
+    destWidth,
+    destHeight,
+    grade,
+  }: CompositorFrameInput,
+): PreparedCompositorFrame {
+  if (!grade || isNeutralColorGrade(grade)) {
+    return { frame, sourceRect, intrinsic, graded: false };
+  }
+
+  const graded = renderer.render(
+    frame,
+    sourceRect,
+    destWidth,
+    destHeight,
+    grade,
+  );
+  return {
+    frame: graded,
+    sourceRect: { x: 0, y: 0, width: graded.width, height: graded.height },
+    intrinsic: { width: graded.width, height: graded.height },
+    graded: true,
+  };
 }

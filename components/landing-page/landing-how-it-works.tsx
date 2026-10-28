@@ -34,8 +34,11 @@ export function LandingHowItWorks() {
       <div className={styles.container}>
         <div className={`${styles.sectionHeader} ${styles.centeredHeading}`}>
           <span className={styles.eyebrow}>How it works</span>
-          <h2>Three steps. That’s it.</h2>
-          <p>From your first word to your final video, all in one place.</p>
+          <h2>How to auto-generate subtitles in three steps</h2>
+          <p>
+            From your first upload to a finished SRT file or subtitled video,
+            all in one place.
+          </p>
         </div>
         <div className={styles.steps}>
           {STEPS.map(

@@ -229,14 +229,14 @@ export function LandingFeatures() {
         <div className={styles.sectionHeader}>
           <span className={styles.eyebrow}>Features</span>
           <h2>
-            Everything you need,
+            A free AI subtitle generator
             <br />
-            nothing you don’t.
+            with everything you need.
           </h2>
           <p>
-            Powerful AI features, a clean interface, and less effort.
-            <br />
-            Create better subtitles, faster.
+            Auto-generate subtitles for videos, edit every word, remove
+            backgrounds, grade color, and export SRT or burned-in video — the
+            free online video subtitle maker that runs in one browser tab.
           </p>
         </div>
         <div className={styles.featureGrid}>
@@ -247,8 +247,8 @@ export function LandingFeatures() {
             badge="WebGPU accelerated"
             demo={<TranscriptionDemo />}
           >
-            Whisper AI turns speech into text, directly in your browser. No
-            cloud processing.
+            An auto subtitle generator for videos that runs Whisper in your
+            browser. No cloud processing, no upload.
           </FeatureCard>
           <FeatureCard
             icon={ScanFace}

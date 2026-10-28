@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "FatahTech Subtitles",
     short_name: "FatahTech",
     description:
-      "Generate professional subtitles for your videos with AI. 100% local, privacy-first subtitle generation powered by transformers.js.",
+      "Free AI subtitle generator and SRT maker. Auto-generate subtitles for videos in 100+ languages, remove backgrounds, and color grade locally in your browser.",
     start_url: "/",
     scope: "/",
     display: "standalone",

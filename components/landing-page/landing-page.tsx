@@ -10,10 +10,12 @@ import { LandingHero } from "./landing-hero";
 import { LandingTechStack } from "./landing-tech-stack";
 import { LandingDropzoneSection } from "./landing-dropzone-section";
 import { LandingFeatures } from "./landing-features";
+import { LandingColorGrading } from "./landing-color-grading";
 import { LandingLocal } from "./landing-local";
 import { LandingArchitecture } from "./landing-architecture";
 import { LandingHowItWorks } from "./landing-how-it-works";
 import { LandingCapabilities } from "./landing-capabilities";
+import { LandingFAQ } from "./landing-faq";
 import { LandingCTA } from "./landing-cta";
 import styles from "./landing.module.css";
 
@@ -70,10 +72,12 @@ export function LandingPage({ onVideoSelect }: LandingPageProps) {
         <LandingTechStack />
         <LandingDropzoneSection onVideoSelect={onVideoSelect} />
         <LandingFeatures />
+        <LandingColorGrading />
         <LandingLocal />
         <LandingArchitecture />
         <LandingHowItWorks />
         <LandingCapabilities />
+        <LandingFAQ />
         <LandingCTA />
       </main>
       <SiteFooter variant="landing" />

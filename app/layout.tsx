@@ -286,26 +286,40 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fatahtech.com"),
+  metadataBase: new URL("https://subtitle.fatahtech.com"),
   applicationName: "FatahTech Subtitles",
   title: {
-    default: "FatahTech Subtitles - AI Video Subtitle Generator",
+    default: "Free AI Subtitle Generator & SRT Maker | FatahTech Subtitles",
     template: "%s | FatahTech Subtitles",
   },
   description:
-    "Generate professional subtitles for your videos with AI. 100% local, privacy-first subtitle generation powered by transformers.js. No server uploads required.",
+    "Generate SRT files and burned-in subtitles free with our AI subtitle generator. Automatic subtitles for videos in 100+ languages — local, no sign-up.",
   keywords: [
-    "subtitles",
-    "video subtitles",
-    "AI subtitles",
+    "free srt generator",
+    "srt generator",
+    "free srt maker",
+    "ai subtitle generator",
+    "free ai subtitle generator",
+    "auto subtitle generator",
+    "auto subtitle generator for videos",
+    "free online video subtitle maker",
+    "video subtitle maker",
     "subtitle generator",
+    "generate srt online",
+    "add subtitles to video",
     "video captions",
-    "transcription",
-    "local AI",
+    "subtitle editor",
+    "transcribe video",
+    "background removal",
+    "color grading",
+    "local ai",
     "privacy-first",
-    "transformers.js",
     "whisper",
+    "transformers.js",
   ],
+  alternates: {
+    canonical: "/",
+  },
   authors: [{ name: "FatahTech", url: "https://fatahtech.com" }],
   creator: "FatahTech",
   manifest: "/manifest.webmanifest",
@@ -331,17 +345,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://fatahtech.com",
-    title: "FatahTech Subtitles - AI Video Subtitle Generator",
-    description:
-      "Generate professional subtitles for your videos with AI. 100% local, privacy-first subtitle generation.",
+    url: "https://subtitle.fatahtech.com",
     siteName: "FatahTech Subtitles",
+    title: "Free AI Subtitle Generator & SRT Maker",
+    description:
+      "Create SRT files and subtitled videos free. AI subtitle generator for 100+ languages, local background removal, and color grading — no sign-up.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FatahTech Subtitles - AI Video Subtitle Generator",
+    title: "Free AI Subtitle Generator & SRT Maker",
     description:
-      "Generate professional subtitles for your videos with AI. 100% local, privacy-first subtitle generation.",
+      "Create SRT files and subtitled videos free. AI subtitle generator for 100+ languages, local background removal, and color grading — no sign-up.",
   },
   robots: {
     index: true,
@@ -357,6 +371,41 @@ export const metadata: Metadata = {
   verification: {
     google: "",
   },
+};
+
+const SOFTWARE_APPLICATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "FatahTech Subtitles",
+  url: "https://subtitle.fatahtech.com",
+  description:
+    "Free AI subtitle generator and SRT maker. Auto-generate subtitles for videos in 100+ languages, edit every word, remove backgrounds, and color grade — all privately in your browser.",
+  applicationCategory: "MultimediaApplication",
+  applicationSubCategory: "Subtitle Editor",
+  operatingSystem: "Any (modern web browser)",
+  browserRequirements: "Requires WebGPU or WebAssembly",
+  isAccessibleForFree: true,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  featureList: [
+    "Free AI subtitle generator with word-level timestamps",
+    "SRT file generation and burned-in MP4/WebM subtitle export",
+    "Auto subtitle generator for videos in 100+ languages",
+    "On-device Whisper transcription with no video uploads",
+    "AI background removal for people and products",
+    "Color & Light grading with footage-aware presets",
+    "Custom font, color, and per-word subtitle styling",
+    "Face-aware subtitle placement and split subtitle mode",
+  ],
+  creator: {
+    "@type": "Organization",
+    name: "FatahTech",
+    url: "https://fatahtech.com",
+  },
+  sameAs: ["https://github.com/THJ420/FatahTech_Subtitles"],
 };
 
 export default function RootLayout({
@@ -378,6 +427,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} ${bebasNeue.variable} ${poppins.variable} ${oswald.variable} ${anton.variable} ${bangers.variable} ${fredoka.variable} ${righteous.variable} ${nunito.variable} ${roboto.variable} ${openSans.variable} ${inter.variable} ${permanentMarker.variable} ${pacifico.variable} ${lobster.variable} ${alfaSlabOne.variable} ${staatliches.variable} ${fugazOne.variable} ${chewy.variable} ${playfairDisplay.variable} ${lora.variable} ${plusJakartaSans.variable} ${outfit.variable} ${lilitaOne.variable} antialiased`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(SOFTWARE_APPLICATION_JSON_LD),
+          }}
+        />
         <Toaster position="top-center" richColors />
         {children}
         <PwaInstallBanner />

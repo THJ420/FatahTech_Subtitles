@@ -16,6 +16,7 @@ import { DebouncedColorInput } from "@/components/ui/debounced-color-input";
 import panelStyles from "@/components/editor-panels.module.css";
 import { getWordEmphasisBackground } from "@/lib/subtitle-appearance";
 import type { BackgroundType } from "@/lib/video-background";
+import type { ColorGrade } from "@/lib/color-grade";
 
 // Helper to check if a color is effectively transparent
 function isTransparentColor(color: string): boolean {
@@ -71,6 +72,8 @@ export interface SubtitleStyle {
   blurIntensity: number;
   /** Data URL for `backgroundType: "image"`. */
   customBackgroundImage?: string;
+  /** Color & Light grade applied to the footage (never to captions). */
+  colorGrade?: ColorGrade;
   // Dynamic subtitle controls
   dynamicEnabled: boolean; // toggle for behind/front 3D depth effect
   dynamicFontSize: number; // behind text font size in px at 500px preview height (default 80)
@@ -79,7 +82,7 @@ export interface SubtitleStyle {
   dynamicFrontYPosition: number; // front text fallback Y position 0-100 (default 75)
   dynamicFollowWord: boolean; // highlight spoken word in front text (phrase mode only)
   textFadeIn: boolean; // letter-by-letter fade-in effect
-  showWatermark: boolean; // draw the fatahtech.com watermark on previews and exports
+  showWatermark: boolean; // draw the subtitle.fatahtech.com watermark on previews and exports
   splitSubtitleMode: "none" | "above-below" | "left-right"; // split subtitle around head
   verticalOffset: number; // fine-tune vertical position in px, range -50..+50 (positive = down)
 }
@@ -520,7 +523,6 @@ export function SubtitleStyling({
 }: SubtitleStylingProps) {
   const fontId = useId();
   const textColorId = useId();
-  const watermarkId = useId();
   const activePresetName = useMemo<SubtitlePresetName | null>(() => {
     const match = PRESETS.find((preset) => isPresetActive(style, preset));
     return match ? match.name : null;
@@ -1244,31 +1246,6 @@ export function SubtitleStyling({
           )}
         </div>
       </section>
-
-      {/* Watermark toggle */}
-      <div className={panelStyles.branding}>
-        <div className="flex items-start gap-2.5">
-          <Switch
-            id={watermarkId}
-            checked={style.showWatermark !== false}
-            onCheckedChange={(checked) =>
-              onChange({ ...style, showWatermark: checked })
-            }
-            className="mt-0.5 flex-shrink-0"
-          />
-          <div className="space-y-1 min-w-0">
-            <label
-              htmlFor={watermarkId}
-              className="text-xs font-semibold leading-tight block cursor-pointer"
-            >
-              Show Watermark (fatahtech.com)
-            </label>
-            <p className="text-[11px] text-black/60 leading-snug">
-              Draw fatahtech.com in the bottom corner of the preview and export
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
