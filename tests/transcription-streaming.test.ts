@@ -3,8 +3,14 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { test } from "node:test";
 import ts from "typescript";
+import * as speechRuntime from "../lib/speech-model-runtime";
 
 test("transcription prepares one window per update and preserves overlap and word timing", async () => {
+  const env = {
+    version: "test-version",
+    allowLocalModels: true,
+    backends: { onnx: { wasm: { wasmPaths: "", proxy: true } } },
+  };
   const events: string[] = [];
   const windows: number[] = [];
   const strides: number[][] = [];
@@ -74,12 +80,19 @@ test("transcription prepares one window per update and preserves overlap and wor
     exports: {},
     require: (name: string) => {
       if (name === "@huggingface/transformers")
-        return { pipeline: async () => transcriber };
+        return { pipeline: async () => transcriber, env };
       if (name.endsWith("transcription-progress"))
         return { ModelDownloadTracker: class {} };
+      if (name.endsWith("speech-model-runtime")) return speechRuntime;
       return { isModelNetworkError: () => false };
     },
+    URL,
+    navigator: { onLine: true },
     self: {
+      location: { origin: "https://speech.test" },
+      fetch: async () => {
+        throw new Error("Unexpected network request");
+      },
       addEventListener(_name: string, handler: typeof handleMessage) {
         handleMessage = handler;
       },
@@ -91,6 +104,12 @@ test("transcription prepares one window per update and preserves overlap and wor
     performance,
     console,
   });
+  assert.equal(env.allowLocalModels, false);
+  assert.equal(
+    env.backends.onnx.wasm.wasmPaths,
+    "https://speech.test/onnxruntime/test-version/",
+  );
+  assert.equal(env.backends.onnx.wasm.proxy, false);
   const audio = new Float32Array(65 * 16000);
   audio[20 * 16000] = 20;
   audio[40 * 16000] = 40;

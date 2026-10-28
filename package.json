@@ -3,7 +3,9 @@
   "version": "2.7.0",
   "license": "MIT",
   "scripts": {
+    "predev": "node scripts/prepare-speech-runtime.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/prepare-speech-runtime.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings=0",

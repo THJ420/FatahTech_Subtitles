@@ -16,7 +16,10 @@ import {
   type ModelSize,
 } from "@/lib/hardware-check";
 import type { SubtitleWord, WordStyleOverride } from "@/lib/transcript-utils";
-import { getModelLoadingErrorMessage } from "@/lib/transcription-errors";
+import {
+  getModelLoadingErrorMessage,
+  serializeTranscriptionError,
+} from "@/lib/transcription-errors";
 import {
   clampProgressPercent,
   type ModelLoadingState,
@@ -219,7 +222,15 @@ export function useTranscription() {
           break;
         }
 
+        case "diagnostic":
+          console.warn("[Speech model] Asset diagnostic", e.data.diagnostic);
+          break;
+
         case "error":
+          console.error(
+            "[Speech model] Worker failure",
+            e.data.diagnostic ?? e.data.data,
+          );
           setError(e.data.data);
           updateStatus("idle");
           setProgress(0);
@@ -227,7 +238,9 @@ export function useTranscription() {
           transcribingRef.current = false;
           modelReadyRef.current = false;
           if (modelLoadRejectRef.current) {
-            modelLoadRejectRef.current(new Error(e.data.data));
+            modelLoadRejectRef.current(
+              new Error(e.data.data, { cause: e.data.diagnostic }),
+            );
           }
           modelLoadingPromiseRef.current = null;
           modelLoadResolveRef.current = null;
@@ -243,19 +256,46 @@ export function useTranscription() {
       return;
     }
 
-    const newWorker = new Worker(new URL("../app/worker.ts", import.meta.url), {
-      type: "module",
-    });
+    let newWorker: Worker;
+    try {
+      newWorker = new Worker(new URL("../app/worker.ts", import.meta.url), {
+        type: "module",
+      });
+    } catch (error) {
+      console.error("[Speech model] Worker construction failed", {
+        stage: "worker-startup",
+        online: navigator.onLine,
+        error: serializeTranscriptionError(error),
+      });
+      throw new Error(
+        getModelLoadingErrorMessage(error, { online: navigator.onLine }),
+        { cause: error },
+      );
+    }
 
     newWorker.addEventListener("message", workerMessageHandler);
     newWorker.addEventListener("error", (event) => {
       if (worker.current !== newWorker) return;
       const message =
         event.message || "The speech worker stopped unexpectedly.";
+      const originalError = event.error ?? new Error(message);
+      console.error("[Speech model] Worker runtime failure", {
+        stage: statusRef.current,
+        modelSize: modelSizeRef.current,
+        device: deviceRef.current,
+        online: navigator.onLine,
+        filename: event.filename,
+        line: event.lineno,
+        column: event.colno,
+        error: serializeTranscriptionError(originalError),
+      });
       const error = new Error(
         statusRef.current === "loading"
-          ? getModelLoadingErrorMessage(message)
+          ? getModelLoadingErrorMessage(originalError, {
+              online: navigator.onLine,
+            })
           : message,
+        { cause: originalError },
       );
       modelLoadRejectRef.current?.(error);
       modelLoadingPromiseRef.current = null;

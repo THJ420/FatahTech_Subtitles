@@ -1,4 +1,5 @@
 import {
+  env,
   pipeline,
   AutomaticSpeechRecognitionPipeline,
 } from "@huggingface/transformers";
@@ -10,12 +11,45 @@ import {
 import {
   getModelLoadingErrorMessage,
   isModelNetworkError,
+  serializeTranscriptionError,
 } from "../lib/transcription-errors";
+import {
+  createSpeechModelCache,
+  createSpeechModelFetch,
+  type SpeechAssetDiagnostic,
+} from "../lib/speech-model-runtime";
 import {
   getEncoderDtype,
   requiresWebGPU,
   type ModelSize,
 } from "../lib/hardware-check";
+
+const runtimePath = new URL(
+  `/onnxruntime/${env.version}/`,
+  self.location.origin,
+).href;
+env.allowLocalModels = false;
+if (env.backends.onnx.wasm) {
+  env.backends.onnx.wasm.wasmPaths = runtimePath;
+  env.backends.onnx.wasm.proxy = false;
+}
+
+function reportAssetDiagnostic(diagnostic: SpeechAssetDiagnostic): void {
+  self.postMessage({
+    status: "diagnostic",
+    diagnostic: { ...diagnostic, online: navigator.onLine, runtimePath },
+  });
+}
+
+self.fetch = createSpeechModelFetch(
+  self.fetch.bind(self),
+  reportAssetDiagnostic,
+);
+if (typeof caches !== "undefined") {
+  env.useBrowserCache = false;
+  env.useCustomCache = true;
+  env.customCache = createSpeechModelCache(caches, reportAssetDiagnostic);
+}
 
 export type { ModelSize };
 
@@ -343,7 +377,15 @@ async function handleLoad({
     loadPromise = null;
     self.postMessage({
       status: "error",
-      data: getModelLoadingErrorMessage(error),
+      data: getModelLoadingErrorMessage(error, { online: navigator.onLine }),
+      diagnostic: {
+        stage: "model-load",
+        modelId: MODEL_IDS[modelSize],
+        device,
+        online: navigator.onLine,
+        runtimePath,
+        error: serializeTranscriptionError(error),
+      },
     });
   }
 }
@@ -547,8 +589,16 @@ async function handleRun({
     self.postMessage({
       status: "error",
       data: loadingModel
-        ? getModelLoadingErrorMessage(error)
+        ? getModelLoadingErrorMessage(error, { online: navigator.onLine })
         : getErrorMessage(error),
+      diagnostic: {
+        stage: loadingModel ? "model-load" : "transcription",
+        modelId: MODEL_IDS[targetModelSize],
+        device: targetDevice,
+        online: navigator.onLine,
+        runtimePath,
+        error: serializeTranscriptionError(error),
+      },
     });
   }
 }

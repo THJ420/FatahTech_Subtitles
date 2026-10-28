@@ -26,7 +26,7 @@ const modelPhases: Record<
   checking: {
     title: "Checking speech model...",
     detail:
-      "Checking for a saved model on your device. The first run needs a download.",
+      "Checking saved model files. The first run needs internet access to Hugging Face; offline use requires a complete cached model and runtime.",
     step: "Checking saved model files.",
   },
   downloading: {
