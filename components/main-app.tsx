@@ -1871,7 +1871,7 @@ export function MainApp({
                 FatahTech
               </a>
             </p>
-            <a href="/changelog">What is new · v{APP_VERSION}</a>
+            <a href="/changelog/">What is new · v{APP_VERSION}</a>
             <a
               href="https://github.com/THJ420/FatahTech_Subtitles"
               target="_blank"

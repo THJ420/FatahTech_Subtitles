@@ -9,6 +9,17 @@ export const metadata = {
   title: "Changelog",
   description:
     "New features, improvements, and fixes in FatahTech Subtitles. Follow the latest editor and export updates.",
+  alternates: {
+    canonical: "https://subtitle.fatahtech.com/changelog/",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "FatahTech Subtitles",
+    url: "https://subtitle.fatahtech.com/changelog/",
+    title: "Changelog | FatahTech Subtitles",
+    description:
+      "New features, improvements, and fixes in FatahTech Subtitles. Follow the latest editor and export updates.",
+  },
 };
 
 function formatDate(date: string) {

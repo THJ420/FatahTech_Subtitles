@@ -107,7 +107,7 @@ safe is what produces the original error.
 - **Silence removal** — detect and skip silent sections in playback and video export
 - **Camera recording** — record up to five minutes, select a camera, and review before editing; audio capture runs on the audio thread with buffered AAC encoding
 - **MP4 export** — baked subtitles, H.264 + AAC; desktop defaults to 30 fps, while mobile uses up to 24 fps and a 1280-pixel long edge
-- **Transcript export** — download JSON, SRT, and WebVTT
+- **Transcript export** — download JSON, SRT, WebVTT, and TXT
 
 ### Edit subtitle timing
 

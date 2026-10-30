@@ -1589,6 +1589,12 @@
   line-height: 1.6;
   margin-top: 10px;
 }
+.footerFreeTools a {
+  color: var(--color-landing-blue);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .footerGithub {
   display: inline-flex;
   align-items: center;
@@ -2045,6 +2051,37 @@
 }
 .tableScroll {
   overflow-x: auto;
+}
+.formatNotes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-landing-hairline);
+}
+.formatNotes article {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.formatNotes h3 {
+  margin: 0;
+  color: var(--color-landing-ink);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.formatNotes p {
+  margin: 0;
+  color: var(--color-landing-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 959px) {
+  .formatNotes {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .compareTable {
   width: 100%;

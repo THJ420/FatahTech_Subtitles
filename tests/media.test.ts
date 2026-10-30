@@ -16,6 +16,7 @@ import {
   binarySearchActiveChunk,
   transcriptToSrt,
   transcriptToVtt,
+  transcriptToTxt,
   mergeTimestampRanges,
 } from "../lib/transcript-utils";
 import {
@@ -245,6 +246,7 @@ test("subtitle file exports preserve timing and text", () => {
     transcriptToVtt(transcript),
     /^WEBVTT\n\n1\n00:00:00.000 --> 00:00:00.500\nHello/,
   );
+  assert.equal(transcriptToTxt(transcript), "Hello world\nAgain\n");
 });
 
 test("a hidden word does not hide visible words in the same phrase", () => {
@@ -271,6 +273,7 @@ test("a hidden word does not hide visible words in the same phrase", () => {
   for (const output of [
     transcriptToSrt(edited, "phrase"),
     transcriptToVtt(edited, "phrase"),
+    transcriptToTxt(edited, "phrase"),
   ]) {
     assert.match(output, /Keep/);
     assert.match(output, /visible/);
@@ -294,6 +297,7 @@ test("subtitle exports omit skipped sections and shift retained timing", () => {
     transcriptToVtt(edited),
     "WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\nkeep\n",
   );
+  assert.equal(transcriptToTxt(edited), "keep\n");
   assert.deepEqual(edited.chunks[1].timestamp, [2, 3]);
 });
 

@@ -19,12 +19,13 @@ export function LandingCTA() {
               No sign-up · No API keys · 100% free
             </span>
             <h2>
-              Make your free <span>SRT and subtitled video</span> now
+              Make your free <span>SRT, VTT, and subtitled video</span> now
             </h2>
             <p>
-              Open the editor, upload a video, and let the AI subtitle generator
-              do the first pass. Everything runs on your device, so your footage
-              stays private.
+              Open the editor, drop a video, and let the free AI subtitle
+              generator do the first pass. Everything runs on your device, so
+              your footage stays private — and the optional watermark can be
+              switched off before export.
             </p>
             <div className={styles.ctaActions}>
               <a href="#dropzone" className={styles.ctaPrimary}>

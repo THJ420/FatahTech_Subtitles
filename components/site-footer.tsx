@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { MessageSquare, Rss, Share2, Terminal } from "lucide-react";
 import { APP_VERSION } from "@/lib/changelog";
+import { FREE_TOOLS_URL, REPOSITORY_URL } from "@/lib/seo";
 import { GitHubIcon } from "@/components/icons/github-icon";
 import { BrandLockup } from "@/components/brand-lockup";
 import styles from "@/components/landing-page/landing.module.css";
-
-const REPOSITORY_URL = "https://github.com/THJ420/FatahTech_Subtitles";
 
 const LINK_GROUPS = [
   {
@@ -13,6 +12,7 @@ const LINK_GROUPS = [
     links: [
       { href: "#features", label: "Features" },
       { href: "#how-it-works", label: "How it works" },
+      { href: "#formats", label: "Formats" },
       { href: "#examples", label: "Examples" },
       { href: "#dropzone", label: "Web Video Editor" },
       { href: "#architecture", label: "Architecture" },
@@ -55,7 +55,7 @@ const LINK_GROUPS = [
       { href: REPOSITORY_URL, label: "Open Source Core", external: true },
       { href: "#", label: "API Documentation" },
       { href: "#", label: "Security Whitepaper" },
-      { href: "/changelog", label: "Changelog", internal: true },
+      { href: "/changelog/", label: "Changelog", internal: true },
     ],
   },
 ] as const;
@@ -110,7 +110,7 @@ export function SiteFooter({
             FatahTech
           </a>
           <span>·</span>
-          <Link href="/changelog">v{APP_VERSION}</Link>
+          <Link href="/changelog/">v{APP_VERSION}</Link>
           <span>·</span>
           <a
             href={REPOSITORY_URL}
@@ -135,6 +135,12 @@ export function SiteFooter({
             High-performance, on-device AI transcription
             <br />
             and a subtitle studio, built by FatahTech.
+          </p>
+          <p className={styles.footerFreeTools}>
+            Part of FatahTech Free Browser Tools —{" "}
+            <a href={FREE_TOOLS_URL} target="_blank" rel="noopener">
+              Explore All Free Tools
+            </a>
           </p>
           <div className={styles.footerStatus}>
             <span className={styles.footerStatusDot} aria-hidden="true" />
@@ -193,7 +199,7 @@ export function SiteFooter({
       <div className={styles.footerBottom}>
         <span>
           © {new Date().getFullYear()} FatahTech. Part of the FatahTech
-          ecosystem. <Link href="/changelog">v{APP_VERSION}</Link>
+          ecosystem. <Link href="/changelog/">v{APP_VERSION}</Link>
         </span>
         <StackLinks />
       </div>

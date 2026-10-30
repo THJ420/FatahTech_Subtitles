@@ -5,6 +5,7 @@ import {
   formatTime,
   transcriptToSrt,
   transcriptToVtt,
+  transcriptToTxt,
   processTranscriptChunks,
   binarySearchActiveChunk,
   type ProcessedChunk,
@@ -188,6 +189,17 @@ export function TranscriptSidebar({
     const a = document.createElement("a");
     a.href = url;
     a.download = `${fileBaseName}.vtt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadTxt = () => {
+    const txtContent = transcriptToTxt(transcript, mode);
+    const blob = new Blob([txtContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileBaseName}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -712,7 +724,7 @@ export function TranscriptSidebar({
 
       <div className={panelStyles.transcriptExports}>
         <div className="text-xs font-semibold mb-3">Download subtitles</div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={handleDownloadJson}
             variant="outline"
@@ -738,6 +750,15 @@ export function TranscriptSidebar({
           >
             <Download size={13} />
             WebVTT
+          </Button>
+
+          <Button
+            onClick={handleDownloadTxt}
+            variant="outline"
+            className="h-9 gap-1 px-2 text-xs"
+          >
+            <Download size={13} />
+            TXT
           </Button>
         </div>
       </div>

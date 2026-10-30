@@ -36,6 +36,7 @@ import { Toaster } from "sonner";
 import { PwaInstallBanner } from "@/components/pwa-install-banner";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { SITE_CANONICAL, STRUCTURED_DATA } from "@/lib/seo";
 
 const robotoMono = Roboto_Mono({
   preload: false,
@@ -286,42 +287,44 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://subtitle.fatahtech.com"),
+  metadataBase: new URL(SITE_CANONICAL),
   applicationName: "FatahTech Subtitles",
   title: {
-    default: "Free AI Subtitle Generator & SRT Maker | FatahTech Subtitles",
+    default:
+      "Free AI Subtitle Generator — 100% In-Browser & Private | FatahTech Subtitles",
     template: "%s | FatahTech Subtitles",
   },
   description:
-    "Generate SRT files and burned-in subtitles free with our AI subtitle generator. Automatic subtitles for videos in 100+ languages — local, no sign-up.",
+    "Free AI subtitle generator with 100% local privacy: no uploads, watermark-free exports, and instant SRT/VTT downloads. Auto-caption video in your browser.",
   keywords: [
-    "free srt generator",
+    "free subtitle generator",
+    "free ai subtitle generator",
+    "auto captions in browser",
+    "free video subtitle generator no watermark",
+    "ai subtitle generator",
+    "auto subtitle generator",
+    "subtitle generator",
     "srt generator",
     "free srt maker",
-    "ai subtitle generator",
-    "free ai subtitle generator",
-    "auto subtitle generator",
-    "auto subtitle generator for videos",
-    "free online video subtitle maker",
+    "vtt converter",
+    "mp4 to srt",
+    "mov to srt",
+    "mkv to srt",
     "video subtitle maker",
-    "subtitle generator",
     "generate srt online",
     "add subtitles to video",
-    "video captions",
-    "subtitle editor",
-    "transcribe video",
-    "background removal",
-    "color grading",
+    "subtitled video export",
+    "transcribe video in browser",
     "local ai",
     "privacy-first",
     "whisper",
     "transformers.js",
+    "background removal",
+    "color grading",
   ],
-  alternates: {
-    canonical: "/",
-  },
   authors: [{ name: "FatahTech", url: "https://fatahtech.com" }],
   creator: "FatahTech",
+  publisher: "FatahTech",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -345,17 +348,19 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://subtitle.fatahtech.com",
+    url: SITE_CANONICAL,
     siteName: "FatahTech Subtitles",
-    title: "Free AI Subtitle Generator & SRT Maker",
+    title:
+      "Free AI Subtitle Generator — 100% In-Browser & Private | FatahTech Subtitles",
     description:
-      "Create SRT files and subtitled videos free. AI subtitle generator for 100+ languages, local background removal, and color grading — no sign-up.",
+      "Generate automatic captions in your browser for free. 100% local AI, no video uploads, watermark-free exports, and SRT/VTT downloads in seconds.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free AI Subtitle Generator & SRT Maker",
+    title:
+      "Free AI Subtitle Generator — 100% In-Browser & Private | FatahTech Subtitles",
     description:
-      "Create SRT files and subtitled videos free. AI subtitle generator for 100+ languages, local background removal, and color grading — no sign-up.",
+      "Generate automatic captions in your browser for free. 100% local AI, no video uploads, watermark-free exports, and SRT/VTT downloads in seconds.",
   },
   robots: {
     index: true,
@@ -368,44 +373,12 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   verification: {
     google: "",
   },
-};
-
-const SOFTWARE_APPLICATION_JSON_LD = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "FatahTech Subtitles",
-  url: "https://subtitle.fatahtech.com",
-  description:
-    "Free AI subtitle generator and SRT maker. Auto-generate subtitles for videos in 100+ languages, edit every word, remove backgrounds, and color grade — all privately in your browser.",
-  applicationCategory: "MultimediaApplication",
-  applicationSubCategory: "Subtitle Editor",
-  operatingSystem: "Any (modern web browser)",
-  browserRequirements: "Requires WebGPU or WebAssembly",
-  isAccessibleForFree: true,
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-  },
-  featureList: [
-    "Free AI subtitle generator with word-level timestamps",
-    "SRT file generation and burned-in MP4/WebM subtitle export",
-    "Auto subtitle generator for videos in 100+ languages",
-    "On-device Whisper transcription with no video uploads",
-    "AI background removal for people and products",
-    "Color & Light grading with footage-aware presets",
-    "Custom font, color, and per-word subtitle styling",
-    "Face-aware subtitle placement and split subtitle mode",
-  ],
-  creator: {
-    "@type": "Organization",
-    name: "FatahTech",
-    url: "https://fatahtech.com",
-  },
-  sameAs: ["https://github.com/THJ420/FatahTech_Subtitles"],
 };
 
 export default function RootLayout({
@@ -430,7 +403,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(SOFTWARE_APPLICATION_JSON_LD),
+            __html: JSON.stringify(STRUCTURED_DATA),
           }}
         />
         <Toaster position="top-center" richColors />

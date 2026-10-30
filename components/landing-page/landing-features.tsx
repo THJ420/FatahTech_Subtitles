@@ -229,14 +229,14 @@ export function LandingFeatures() {
         <div className={styles.sectionHeader}>
           <span className={styles.eyebrow}>Features</span>
           <h2>
-            A free AI subtitle generator
-            <br />
-            with everything you need.
+            A free AI subtitle generator for <br />
+            automatic captions in your browser.
           </h2>
           <p>
             Auto-generate subtitles for videos, edit every word, remove
-            backgrounds, grade color, and export SRT or burned-in video — the
-            free online video subtitle maker that runs in one browser tab.
+            backgrounds, grade color, and export SRT, VTT, TXT, or burned-in
+            video — the free online video subtitle maker that runs in one
+            browser tab.
           </p>
         </div>
         <div className={styles.featureGrid}>

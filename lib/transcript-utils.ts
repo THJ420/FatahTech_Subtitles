@@ -304,8 +304,7 @@ function _processTranscriptChunks(
             }))
           : manualWords;
       processedChunks.push({
-        text:
-          trimmedText || positionedWords.map((word) => word.text).join(" "),
+        text: trimmedText || positionedWords.map((word) => word.text).join(" "),
         timestamp: [start, end],
         sourceIndex: index,
         disabled: chunkDisabled,
@@ -455,4 +454,17 @@ export function transcriptToVtt(
     .join("\n");
 
   return header + cues;
+}
+
+/**
+ * Convert transcript data to a plain-text subtitle script.
+ */
+export function transcriptToTxt(
+  transcript: SourceTranscript,
+  mode: "word" | "phrase" = "phrase",
+): string {
+  const lines = getSubtitleFileChunks(transcript, mode)
+    .map((chunk) => chunk.text.trim())
+    .filter(Boolean);
+  return lines.length > 0 ? `${lines.join("\n")}\n` : "";
 }

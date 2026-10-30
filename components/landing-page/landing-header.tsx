@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: "#top", label: "Overview" },
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
+  { href: "#formats", label: "Formats" },
   { href: "#architecture", label: "AI Models" },
   { href: "#local", label: "Privacy" },
   { href: "#benchmarks", label: "Benchmarks" },
@@ -43,7 +44,7 @@ export function LandingHeader() {
             <span className={styles.versionBadge}>v{APP_VERSION}</span>
           </a>
           <a href="#dropzone" className={styles.primaryButton}>
-            Launch App <ArrowRight size={16} />
+            Open free editor <ArrowRight size={16} />
           </a>
         </div>
       </div>

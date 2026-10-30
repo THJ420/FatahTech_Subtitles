@@ -13,8 +13,9 @@ import styles from "./landing.module.css";
 const PRIVACY_POINTS = [
   {
     icon: VideoOff,
-    title: "No video uploads",
-    detail: "Your video is processed here, on your own device.",
+    title: "No video uploads or server processing",
+    detail:
+      "Your video is decoded and transcribed here, on your own device. There is no upload step and no server-side queue.",
     tone: "pink",
   },
   {
@@ -26,15 +27,15 @@ const PRIVACY_POINTS = [
   },
   {
     icon: Cpu,
-    title: "Your device does the work",
-    detail: "WebGPU and WebAssembly run AI on your own hardware.",
+    title: "Your device runs the AI",
+    detail: "WebGPU and WebAssembly run Whisper on your own hardware.",
     tone: "purple",
   },
   {
     icon: HardDrive,
-    title: "You control your files",
+    title: "Free, open source, and yours to keep",
     detail:
-      "Edit in this session, then download the result when you are ready.",
+      "The editor is MIT licensed with no subscription. Edit in this session, then download the result when you are ready.",
     tone: "green",
   },
 ] as const;
@@ -102,13 +103,13 @@ export function LandingLocal() {
         <div className={styles.localCopy}>
           <span className={styles.eyebrow}>Privacy architecture</span>
           <h2>
-            Your video stays
-            <br />
-            on your device.
+            Why Local Browser AI Subtitling is{" "}
+            <span className={styles.highlight}>100% Private &amp; Free</span>
           </h2>
           <p>
-            The AI models download once. Then your browser does the work with
-            WebGPU and WebAssembly. Your video files stay on your machine.
+            The AI models download once, then your browser does the work with
+            WebGPU and WebAssembly. There is no upload step, no account, and no
+            subscription — your video files stay on your machine.
           </p>
           <div className={styles.privacyGrid}>
             {PRIVACY_POINTS.map(({ icon: Icon, title, detail, tone }) => (

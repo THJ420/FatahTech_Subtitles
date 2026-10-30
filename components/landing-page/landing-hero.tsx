@@ -33,20 +33,22 @@ export function LandingHero() {
             source
           </span>
           <h1>
-            Free AI subtitle generator &amp;{" "}
-            <span className={styles.highlight}>SRT maker</span>
+            Free AI Subtitle Generator That{" "}
+            <span className={styles.highlight}>
+              Runs Locally in Your Browser
+            </span>
           </h1>
           <p className={styles.heroDescription}>
-            The free online video subtitle maker: auto-generate subtitles for
-            any video, edit every word, grade the color, and export SRT or
-            burned-in video — locally in your browser. No sign-up.
+            The free video subtitle generator that auto-captions in your
+            browser: edit every word, export SRT, VTT, or a subtitled MP4, and
+            grade color locally. No sign-up, no uploads, no forced watermark.
           </p>
           <div className={styles.heroActions}>
             <a href="#dropzone" className={styles.primaryButton}>
-              Launch Subtitle Studio <ArrowRight size={17} />
+              Generate free subtitles <ArrowRight size={17} />
             </a>
             <a href="#benchmarks" className={styles.secondaryButton}>
-              Benchmarks & Code
+              Compare subtitle tools
             </a>
           </div>
           <div className={styles.benefits}>
