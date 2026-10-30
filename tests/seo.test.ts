@@ -6,10 +6,17 @@ import {
   FAQ_ITEMS,
   PARENT_ORGANIZATION_ID,
   SITE_CANONICAL,
+  SITE_TITLE,
   STRUCTURED_DATA,
 } from "../lib/seo";
 
 const graph: ReadonlyArray<Record<string, unknown>> = STRUCTURED_DATA["@graph"];
+
+test("the meta title stays under Google's display limit with the core keyword and brand", () => {
+  assert.ok(SITE_TITLE.length < 60, `${SITE_TITLE.length} characters`);
+  assert.match(SITE_TITLE, /^Free AI Subtitle Generator/);
+  assert.match(SITE_TITLE, /FatahTech Subtitles$/);
+});
 
 function entity(type: string): Record<string, unknown> | undefined {
   return graph.find((entry) => {

@@ -36,7 +36,7 @@ import { Toaster } from "sonner";
 import { PwaInstallBanner } from "@/components/pwa-install-banner";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { SITE_CANONICAL, STRUCTURED_DATA } from "@/lib/seo";
+import { SITE_CANONICAL, SITE_TITLE, STRUCTURED_DATA } from "@/lib/seo";
 
 const robotoMono = Roboto_Mono({
   preload: false,
@@ -290,8 +290,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_CANONICAL),
   applicationName: "FatahTech Subtitles",
   title: {
-    default:
-      "Free AI Subtitle Generator — 100% In-Browser & Private | FatahTech Subtitles",
+    default: SITE_TITLE,
     template: "%s | FatahTech Subtitles",
   },
   description:
@@ -350,15 +349,13 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_CANONICAL,
     siteName: "FatahTech Subtitles",
-    title:
-      "Free AI Subtitle Generator — 100% In-Browser & Private | FatahTech Subtitles",
+    title: SITE_TITLE,
     description:
       "Generate automatic captions in your browser for free. 100% local AI, no video uploads, watermark-free exports, and SRT/VTT downloads in seconds.",
   },
   twitter: {
     card: "summary_large_image",
-    title:
-      "Free AI Subtitle Generator — 100% In-Browser & Private | FatahTech Subtitles",
+    title: SITE_TITLE,
     description:
       "Generate automatic captions in your browser for free. 100% local AI, no video uploads, watermark-free exports, and SRT/VTT downloads in seconds.",
   },

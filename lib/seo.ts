@@ -1,6 +1,7 @@
 export const SITE_URL = "https://subtitle.fatahtech.com";
 export const SITE_CANONICAL = `${SITE_URL}/`;
 export const SITE_NAME = "FatahTech Subtitles";
+export const SITE_TITLE = `Free AI Subtitle Generator | ${SITE_NAME}`;
 export const PARENT_ORGANIZATION_ID = "https://fatahtech.com/#organization";
 export const FREE_TOOLS_URL = "https://fatahtech.com/tools/freebies";
 export const REPOSITORY_URL = "https://github.com/THJ420/FatahTech_Subtitles";
